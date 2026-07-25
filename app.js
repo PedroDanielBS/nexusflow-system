@@ -1,11 +1,15 @@
 /* ==========================================================================
    NEXUSFLOW - SISTEMA INTERNO DE ATENDIMENTO, DEMANDAS, CHAT & KPIS
-   Motor JavaScript Modular - 100% Funcionalidades Reais & Downloads
+   Motor JavaScript Modular - Conexão Flexível Front-end & Back-end (8081)
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
   
-  const BACKEND_URL = 'http://localhost:8081';
+  // Resolução dinâmica de Host para evitar erros de CORS / Mixed Content em nuvem e localhost
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const BACKEND_URL = isLocal 
+    ? 'http://localhost:8081' 
+    : (window.NEXUSFLOW_BACKEND_URL || window.location.origin);
 
   // ==========================================
   // ESTADO GLOBAL DA APLICAÇÃO (STATE)
@@ -160,6 +164,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         state.backendConnected = true;
         updateBackendPill(true);
+      } else {
+        state.backendConnected = false;
+        updateBackendPill(false);
       }
     } catch (err) {
       state.backendConnected = false;
@@ -361,7 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
     item.addEventListener('click', () => switchView(item.getAttribute('data-view')));
   });
 
-  // Filtro e Busca Real de Contatos
   function getFilteredContacts() {
     return state.contacts.filter(contact => {
       const matchesSearch = contact.name.toLowerCase().includes(state.searchQuery) || 
@@ -499,7 +505,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      // Eventos de clique para Preview e Download na mensagem
       const btnPreview = bubble.querySelector('.btn-preview-file');
       if (btnPreview) btnPreview.addEventListener('click', () => openFilePreviewModal(msg.file));
 
@@ -606,9 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ==========================================
   // KANBAN REAL
-  // ==========================================
   function renderKanban() {
     const columns = {
       'a-fazer': document.getElementById('col-a-fazer'),
@@ -702,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // RENDERIZAÇÃO REAL DA CENTRAL DE ARQUIVOS (COM BOTÕES DE VISUALIZAR E DOWNLOAD REAL)
+  // RENDERIZAÇÃO REAL DA CENTRAL DE ARQUIVOS
   function renderFilesGrid() {
     const container = document.getElementById('files-grid-container');
     if (!container) return;
