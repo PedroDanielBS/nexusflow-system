@@ -1,13 +1,11 @@
 /* ==========================================================================
    NEXUSFLOW - SISTEMA INTERNO DE ATENDIMENTO, DEMANDAS, CHAT & KPIS
-   Motor JavaScript Modular - Resolução de Conexão com Render.com & Vercel
+   Motor JavaScript Modular - Verificação de Conexão Ultra Resiliente
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
   
   // Resolução inteligente da URL do Back-end:
-  // 1. Se estiver rodando localmente -> http://localhost:8081
-  // 2. Se estiver na Vercel/Nuvem -> Usa a URL do Render.com com HTTPS seguro
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   
   const RENDER_PROD_URL = 'https://nexusflow-backend.onrender.com';
@@ -158,26 +156,38 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // ==========================================
-  // CONEXÃO DE REDE E ENGINE MANUS AI
+  // VERIFICAÇÃO ULTRA RESILIENTE DE SAÚDE DA API
   // ==========================================
   async function checkBackendConnection() {
     try {
-      const res = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
+      // 1. Tenta rota simples GET /api/v1/health (Sem preflight CORS estrito)
+      const res = await fetch(`${BACKEND_URL}/api/v1/health`, { method: 'GET' });
+      if (res.ok) {
+        state.backendConnected = true;
+        updateBackendPill(true);
+        return;
+      }
+    } catch (err) {
+      // Se falhar o health check, tenta rota de login de fallback
+    }
+
+    try {
+      const resLogin = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: 'pedro@nexusflow.com', password: '123' })
       });
-      if (res.ok) {
+      if (resLogin.ok) {
         state.backendConnected = true;
         updateBackendPill(true);
-      } else {
-        state.backendConnected = false;
-        updateBackendPill(false);
+        return;
       }
-    } catch (err) {
-      state.backendConnected = false;
-      updateBackendPill(false);
+    } catch (err2) {
+      // Falha dupla
     }
+
+    state.backendConnected = false;
+    updateBackendPill(false);
   }
 
   function updateBackendPill(isConnected) {
@@ -191,9 +201,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       pill.style.backgroundColor = 'rgba(244, 63, 94, 0.15)';
       pill.style.color = '#f43f5e';
-      pill.innerHTML = `<span class="status-dot" style="background-color: #f43f5e;"></span> Back-end Desconectado`;
+      pill.innerHTML = `<span class="status-dot" style="background-color: #f43f5e;"></span> Aguardando Conexão Render...`;
     }
   }
+
+  // REtentativa periódica a cada 8 segundos para quando o Render sair do modo Sleep
+  setInterval(checkBackendConnection, 8000);
 
   // CHAMADA DE TRIAGEM MANUS AI
   async function callManusAiTriagem(contactObj) {
