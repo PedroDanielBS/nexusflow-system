@@ -1,0 +1,7 @@
+# GitIgnore para o NexusFlow
+node_modules/
+.env
+*.log
+.DS_Store
+dist/
+build/

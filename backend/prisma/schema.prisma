@@ -1,0 +1,144 @@
+// ==========================================================================
+// NEXUSFLOW - PRISMA SCHEMA (POSTGRESQL PRODUCTION DATA MODEL)
+// ==========================================================================
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  AGENT
+}
+
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TicketStatus {
+  QUEUE
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CANCELLED
+}
+
+enum DemandStatus {
+  TODO
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  DONE
+}
+
+enum SenderType {
+  CUSTOMER
+  AGENT
+  MANUS_AI
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(AGENT)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tickets Ticket[]
+  demands Demand[]
+}
+
+model Contact {
+  id         String   @id @default(uuid())
+  name       String
+  phone      String   @unique
+  whatsappId String   @unique
+  company    String?
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+
+  tickets Ticket[]
+}
+
+model Ticket {
+  id              String       @id @default(uuid())
+  contactId       String
+  assignedAgentId String?
+  status          TicketStatus @default(QUEUE)
+  priority        Priority     @default(MEDIUM)
+  tmrSeconds      Int?
+  tmaSeconds      Int?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  contact       Contact      @relation(fields: [contactId], references: [id])
+  assignedAgent User?        @relation(fields: [assignedAgentId], references: [id])
+  messages      Message[]
+  demands       Demand[]
+  kpiLogs       KpiLog[]
+}
+
+model Message {
+  id            String     @id @default(uuid())
+  ticketId      String
+  senderType    SenderType
+  senderName    String
+  text          String
+  isAudio       Boolean    @default(false)
+  signatureHmac String?
+  readAt        DateTime?
+  createdAt     DateTime   @default(now())
+
+  ticket      Ticket       @relation(fields: [ticketId], references: [id])
+  attachments Attachment[]
+}
+
+model Demand {
+  id           String       @id @default(uuid())
+  ticketId     String?
+  agentId      String
+  title        String
+  description  String?
+  status       DemandStatus @default(TODO)
+  priority     Priority     @default(MEDIUM)
+  slaExpiresAt DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  ticket Ticket? @relation(fields: [ticketId], references: [id])
+  agent  User    @relation(fields: [agentId], references: [id])
+}
+
+model Attachment {
+  id             String   @id @default(uuid())
+  messageId      String
+  filename       String
+  mimeType       String
+  sizeBytes      Int
+  s3Url          String
+  fileHashSha256 String
+  createdAt      DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id])
+}
+
+model KpiLog {
+  id         String   @id @default(uuid())
+  ticketId   String
+  tmr        Int
+  tma        Int
+  csatRating Float?
+  loggedAt   DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+}

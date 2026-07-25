@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexusFlow | Sistema Interno de Atendimento, Demandas e KPIs</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart.js for KPIs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <div id="app-root">
+    
+    <!-- SIDEBAR DE NAVEGAÇÃO PRINCIPAL -->
+    <aside class="sidebar">
+      <div>
+        <div class="brand-header">
+          <img src="logo.png" alt="NexusFlow Logo" class="brand-logo" id="app-logo">
+          <div>
+            <div class="brand-title">NexusFlow</div>
+            <div class="brand-subtitle">Atendimento & Demandas</div>
+          </div>
+        </div>
+
+        <nav class="nav-menu">
+          <a class="nav-item active" data-view="view-chat">
+            <i class="fa-solid fa-comments"></i>
+            <span>Atendimento & Chat</span>
+            <span class="nav-badge" id="chat-unread-count">3</span>
+          </a>
+          
+          <a class="nav-item" data-view="view-kanban">
+            <i class="fa-solid fa-square-kanban"></i>
+            <span>Quadro de Demandas</span>
+          </a>
+          
+          <a class="nav-item" data-view="view-kpi">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>KPIs & Analytics</span>
+          </a>
+          
+          <a class="nav-item" data-view="view-integrations">
+            <i class="fa-solid fa-robot"></i>
+            <span>WhatsApp & Manus AI</span>
+          </a>
+
+          <a class="nav-item" data-view="view-files">
+            <i class="fa-solid fa-folder-open"></i>
+            <span>Central de Arquivos</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="agent-profile">
+          <div class="agent-avatar">
+            PA
+            <div class="agent-status-indicator"></div>
+          </div>
+          <div class="agent-info">
+            <div class="agent-name">Pedro Alves</div>
+            <div class="agent-role">Supervisor de Suporte</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <main class="main-content">
+      
+      <!-- TOPBAR SUPERIOR -->
+      <header class="topbar">
+        <div class="topbar-title-group">
+          <h1 class="page-title" id="current-view-title">Atendimento & Central de Chat</h1>
+          
+          <span class="status-pill" id="whatsapp-connection-pill">
+            <span class="status-dot"></span>
+            WhatsApp Cloud API Conectado
+          </span>
+
+          <span class="status-pill" id="backend-connection-pill" style="background-color: rgba(139, 92, 246, 0.15); color: #8b5cf6; border-color: rgba(139, 92, 246, 0.3);">
+            <span class="status-dot" style="background-color: #8b5cf6;"></span>
+            Back-end API :8081 CONECTADO ⚡
+          </span>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="btn-secondary btn-manus" id="btn-open-manus-assistant">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            Manus AI Assistant
+          </button>
+          
+          <button class="btn-primary" id="btn-quick-new-demand">
+            <i class="fa-solid fa-plus"></i>
+            Nova Demanda
+          </button>
+
+          <button class="btn-icon" id="theme-toggle-btn" title="Alternar Tema Dark/Light">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEW 1: ATENDIMENTO & CHAT (3 COLUNAS) -->
+      <section class="view-container active" id="view-chat">
+        <div class="chat-layout">
+          
+          <!-- COLUNA 1: FILA DE CONTATOS -->
+          <div class="contacts-column">
+            <div class="contacts-header">
+              <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="search-input" placeholder="Buscar cliente ou conversa..." id="contact-search">
+              </div>
+              <div class="filter-tabs">
+                <div class="filter-tab active" data-filter="todos">Todos (5)</div>
+                <div class="filter-tab" data-filter="minhas">Minhas</div>
+                <div class="filter-tab" data-filter="fila">Fila (2)</div>
+              </div>
+            </div>
+
+            <div class="contacts-list" id="contacts-list-container">
+              <!-- Renderizado dinamicamente via JS -->
+            </div>
+          </div>
+
+          <!-- COLUNA 2: THREAD DA CONVERSA ATIVA -->
+          <div class="chat-thread-column">
+            
+            <div class="chat-header">
+              <div class="active-user-info">
+                <div class="contact-avatar-wrapper">
+                  <div class="contact-avatar" id="active-chat-avatar">CC</div>
+                  <div class="whatsapp-badge"><i class="fa-brands fa-whatsapp"></i></div>
+                </div>
+                <div>
+                  <h2 style="font-size: 1rem; font-weight: 700;" id="active-chat-name">Carlos Construtora S.A.</h2>
+                  <div style="font-size: 0.75rem; color: var(--text-muted);" id="active-chat-phone">+55 11 98765-4321 • Atendente: Pedro Alves</div>
+                </div>
+              </div>
+
+              <div class="chat-header-actions">
+                <button class="btn-secondary" id="btn-convert-to-demand" title="Criar Card de Demanda no Kanban">
+                  <i class="fa-solid fa-arrow-right-to-city"></i>
+                  Gerar Demanda
+                </button>
+                <button class="btn-icon" title="Opções da Conversa"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              </div>
+            </div>
+
+            <!-- CONTAINER DE MENSAGENS -->
+            <div class="messages-container" id="messages-container">
+              <!-- Mensagens renderizadas dinamicamente pelo JS -->
+            </div>
+
+            <!-- BARRA DE INPUT E ENVIOS DE ARQUIVOS -->
+            <div class="chat-input-area">
+              <div class="quick-actions-bar">
+                <button class="quick-chip" id="chip-quick-reply"><i class="fa-solid fa-bolt"></i> Resposta Rápida</button>
+                <button class="quick-chip" id="chip-manus-suggest"><i class="fa-solid fa-wand-magic-sparkles"></i> Sugerir com Manus API (8081)</button>
+                <button class="quick-chip" id="chip-send-file"><i class="fa-solid fa-paperclip"></i> Anexar Arquivo</button>
+                <button class="quick-chip" id="chip-request-audio"><i class="fa-solid fa-microphone"></i> Simular Áudio</button>
+              </div>
+
+              <div class="input-box-wrapper">
+                <textarea class="chat-textarea" id="chat-message-input" placeholder="Digite sua mensagem ou arraste arquivos aqui..." rows="1"></textarea>
+                
+                <div class="input-actions">
+                  <input type="file" id="file-upload-input" style="display: none;" multiple>
+                  <button class="btn-icon" id="btn-trigger-upload" title="Anexar Imagem, PDF ou Áudio">
+                    <i class="fa-solid fa-paperclip"></i>
+                  </button>
+                  <button class="btn-primary" id="btn-send-message">
+                    <i class="fa-solid fa-paper-plane"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- COLUNA 3: DETALHES DO CLIENTE E DEMANDA ASSOCIADA -->
+          <div class="info-sidebar-column">
+            
+            <div class="info-card">
+              <div class="info-title">
+                <span>Perfil do Cliente</span>
+                <i class="fa-solid fa-id-card"></i>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Empresa:</span>
+                <span class="info-value" id="side-info-company">Carlos Construtora</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Canal:</span>
+                <span class="info-value" style="color: var(--whatsapp-green);"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">SLA Limite:</span>
+                <span class="info-value" style="color: var(--accent-amber);">15 min restantes</span>
+              </div>
+            </div>
+
+            <div class="info-card">
+              <div class="info-title">
+                <span>Demanda Vinculada</span>
+                <span class="demand-tag alta">Prioridade Alta</span>
+              </div>
+              <div style="font-size: 0.88rem; font-weight: 700;" id="side-info-demand-title">Aprovação de Medição de Obra</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);" id="side-info-demand-desc">
+                Cliente enviou planilha de medição de engenharia para revisão e assinatura do contrato.
+              </div>
+              <div class="info-row" style="margin-top: 0.5rem;">
+                <span class="info-label">Status no Kanban:</span>
+                <span class="info-value" style="color: var(--accent-cyan);" id="side-info-demand-status">Em Andamento</span>
+              </div>
+            </div>
+
+            <div class="info-card">
+              <div class="info-title">
+                <span>Copiloto Manus AI</span>
+                <i class="fa-solid fa-brain" style="color: var(--manus-purple);"></i>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">
+                <strong>Resumo da conversa:</strong> O cliente solicitou urgência na emissão do relatório financeiro de julho.
+              </div>
+              <button class="btn-secondary btn-manus" style="font-size: 0.75rem; padding: 0.4rem 0.6rem;" id="btn-manus-auto-reply">
+                <i class="fa-solid fa-robot"></i> Gerar Resposta Automática (API 8081)
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- VIEW 2: QUADRO KANBAN DE DEMANDAS -->
+      <section class="view-container" id="view-kanban">
+        <div class="kanban-view">
+          
+          <div class="kanban-controls">
+            <div>
+              <h2 style="font-size: 1.2rem; font-weight: 700;">Quadro de Gerenciamento de Demandas</h2>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">Arraste os cards para atualizar o status e atribuição em tempo real.</p>
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem;">
+              <button class="btn-secondary" id="btn-filter-kanban">
+                <i class="fa-solid fa-filter"></i> Filtrar por Atendente
+              </button>
+              <button class="btn-primary" id="btn-create-demand-modal">
+                <i class="fa-solid fa-plus"></i> Adicionar Demanda
+              </button>
+            </div>
+          </div>
+
+          <div class="kanban-board">
+            
+            <!-- Coluna: A Fazer -->
+            <div class="kanban-column" data-status="a-fazer">
+              <div class="kanban-col-header">
+                <div class="kanban-col-title">
+                  <i class="fa-solid fa-circle" style="color: var(--accent-rose); font-size: 0.6rem;"></i>
+                  <span>A Fazer</span>
+                </div>
+                <span class="kanban-card-count" id="count-a-fazer">2</span>
+              </div>
+              <div class="kanban-cards-container" id="col-a-fazer">
+                <!-- Cards renderizados via JS -->
+              </div>
+            </div>
+
+            <!-- Coluna: Em Andamento -->
+            <div class="kanban-column" data-status="em-andamento">
+              <div class="kanban-col-header">
+                <div class="kanban-col-title">
+                  <i class="fa-solid fa-circle" style="color: var(--accent-amber); font-size: 0.6rem;"></i>
+                  <span>Em Andamento</span>
+                </div>
+                <span class="kanban-card-count" id="count-em-andamento">2</span>
+              </div>
+              <div class="kanban-cards-container" id="col-em-andamento">
+                <!-- Cards renderizados via JS -->
+              </div>
+            </div>
+
+            <!-- Coluna: Aguardando Cliente -->
+            <div class="kanban-column" data-status="aguardando">
+              <div class="kanban-col-header">
+                <div class="kanban-col-title">
+                  <i class="fa-solid fa-circle" style="color: var(--accent-cyan); font-size: 0.6rem;"></i>
+                  <span>Aguardando Cliente</span>
+                </div>
+                <span class="kanban-card-count" id="count-aguardando">1</span>
+              </div>
+              <div class="kanban-cards-container" id="col-aguardando">
+                <!-- Cards renderizados via JS -->
+              </div>
+            </div>
+
+            <!-- Coluna: Concluído -->
+            <div class="kanban-column" data-status="concluido">
+              <div class="kanban-col-header">
+                <div class="kanban-col-title">
+                  <i class="fa-solid fa-circle" style="color: var(--accent-emerald); font-size: 0.6rem;"></i>
+                  <span>Concluído</span>
+                </div>
+                <span class="kanban-card-count" id="count-concluido">3</span>
+              </div>
+              <div class="kanban-cards-container" id="col-concluido">
+                <!-- Cards renderizados via JS -->
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- VIEW 3: DASHBOARD DE KPIS & ANALYTICS -->
+      <section class="view-container" id="view-kpi">
+        <div class="kpi-view">
+          
+          <div class="kpi-grid-cards">
+            
+            <div class="kpi-card">
+              <div class="kpi-card-header">
+                <span>Tempo Médio de Resposta (TMR)</span>
+                <div class="kpi-card-icon"><i class="fa-solid fa-stopwatch"></i></div>
+              </div>
+              <div class="kpi-value" id="kpi-tmr-value">02m 45s</div>
+              <div class="kpi-trend positive">
+                <i class="fa-solid fa-arrow-down"></i> -18% comparado ao mês passado
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-card-header">
+                <span>Tempo Médio de Atendimento (TMA)</span>
+                <div class="kpi-card-icon"><i class="fa-solid fa-clock"></i></div>
+              </div>
+              <div class="kpi-value" id="kpi-tma-value">14m 10s</div>
+              <div class="kpi-trend positive">
+                <i class="fa-solid fa-arrow-down"></i> -8% dentro do SLA estipulado
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-card-header">
+                <span>Demandas Resolvidas</span>
+                <div class="kpi-card-icon"><i class="fa-solid fa-circle-check"></i></div>
+              </div>
+              <div class="kpi-value" id="kpi-tickets-count">148</div>
+              <div class="kpi-trend positive">
+                <i class="fa-solid fa-arrow-up"></i> +24% este mês
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-card-header">
+                <span>Índice CSAT / Satisfação</span>
+                <div class="kpi-card-icon"><i class="fa-solid fa-star"></i></div>
+              </div>
+              <div class="kpi-value" id="kpi-csat-value">4.9 / 5.0</div>
+              <div class="kpi-trend positive">
+                <i class="fa-solid fa-face-smile"></i> 96.4% de avaliações 5 estrelas
+              </div>
+            </div>
+
+          </div>
+
+          <div class="kpi-charts-row">
+            
+            <div class="chart-card">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1rem; font-weight: 700;">Volume de Atendimentos por Hora (Hoje)</h3>
+                <span style="font-size: 0.75rem; color: var(--text-subtle);">Atualizado em tempo real</span>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-hourly-volume"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1rem; font-weight: 700;">Desempenho por Atendente</h3>
+                <span style="font-size: 0.75rem; color: var(--text-subtle);">Mês Atual</span>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-agent-performance"></canvas>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- VIEW 4: WHATSAPP & MANUS AI INTEGRATIONS SIMULATOR -->
+      <section class="view-container" id="view-integrations">
+        <div class="integrations-view">
+          
+          <div class="integration-grid">
+            
+            <!-- WhatsApp Cloud API Settings & Simulator -->
+            <div class="integration-card">
+              <div class="integration-header">
+                <div class="integration-icon-box whatsapp">
+                  <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <div>
+                  <h2 style="font-size: 1.1rem; font-weight: 700;">Conexão WhatsApp Cloud API</h2>
+                  <p style="font-size: 0.8rem; color: var(--text-muted);">Status: Ativo e recebendo webhooks em tempo real</p>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Número Conectado</label>
+                <input type="text" class="form-input" value="+55 (11) 99887-6655 (NexusFlow Official)" readonly>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem;">
+                <button class="btn-secondary" id="btn-simulate-incoming-wa">
+                  <i class="fa-solid fa-paper-plane"></i> Simular Mensagem (Dispara Webhook Backend :8081)
+                </button>
+                <button class="btn-secondary" id="btn-show-qr-modal">
+                  <i class="fa-solid fa-qrcode"></i> Ver QR Code
+                </button>
+              </div>
+
+              <div>
+                <label class="form-label">Logs de Webhook do WhatsApp (Ao Vivo)</label>
+                <div class="webhook-log-box" id="wa-webhook-logs">
+                  <div>[13:00:12 INFO] Webhook HTTP 200 OK - Evento: message_received de +5511987654321</div>
+                  <div>[13:00:15 INFO] Status alterado: mensagem marcada como LIDA</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Manus AI Agent Settings & Simulator -->
+            <div class="integration-card">
+              <div class="integration-header">
+                <div class="integration-icon-box manus">
+                  <i class="fa-solid fa-robot"></i>
+                </div>
+                <div>
+                  <h2 style="font-size: 1.1rem; font-weight: 700;">Automação Agentica Manus AI</h2>
+                  <p style="font-size: 0.8rem; color: var(--text-muted);">Copiloto inteligente ativado para triagem e síntese</p>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Modo de Operação do Manus</label>
+                <select class="form-select" id="manus-mode-select">
+                  <option value="copilot">Copiloto Híbrido (Sugere e o atendente confirma)</option>
+                  <option value="autonomous">Modo Autônomo (Responde dúvidas frequentes)</option>
+                </select>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem;">
+                <button class="btn-primary btn-manus" id="btn-trigger-manus-summary">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> Executar Síntese da Fila (API 8081)
+                </button>
+              </div>
+
+              <div>
+                <label class="form-label">Console de Execução da IA (Manus Logs)</label>
+                <div class="webhook-log-box" id="manus-ai-logs" style="color: #c084fc;">
+                  <div>[13:00:00 MANUS] Inicializando agente copiloto de atendimento v2.4</div>
+                  <div>[13:00:18 MANUS] Analisando intenção do cliente: Solicitacao_Medicao_Obra</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- VIEW 5: CENTRAL DE ARQUIVOS & ENVIOS DE MÍDIA -->
+      <section class="view-container" id="view-files">
+        <div class="integrations-view">
+          <div class="kanban-controls">
+            <div>
+              <h2 style="font-size: 1.2rem; font-weight: 700;">Central de Arquivos e Documentos</h2>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">Todos os comprovantes, relatórios e áudios trocados nos atendimentos.</p>
+            </div>
+            <button class="btn-primary" id="btn-upload-file-central">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Upload de Arquivo
+            </button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;" id="files-grid-container">
+            <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL: NOVA DEMANDA KANBAN -->
+  <div class="modal-overlay" id="modal-new-demand">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.1rem; font-weight: 700;">Criar Nova Demanda</h3>
+        <button class="btn-icon" id="close-modal-demand"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Título da Demanda</label>
+        <input type="text" class="form-input" id="demand-title-input" placeholder="Ex: Análise de Contrato Financeiro">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Cliente Vinculado</label>
+        <select class="form-select" id="demand-client-select">
+          <option value="Carlos Construtora S.A.">Carlos Construtora S.A.</option>
+          <option value="Dra. Mariana Costa">Dra. Mariana Costa</option>
+          <option value="TechSolutions Brasil">TechSolutions Brasil</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Prioridade</label>
+        <select class="form-select" id="demand-priority-select">
+          <option value="alta">Alta (SLA 2 horas)</option>
+          <option value="media" selected>Média (SLA 24 horas)</option>
+          <option value="baixa">Baixa (SLA 48 horas)</option>
+        </select>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+        <button class="btn-secondary" id="btn-cancel-demand">Cancelar</button>
+        <button class="btn-primary" id="btn-save-demand">Criar Demanda</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: LIGHTBOX / PREVIEW DE ARQUIVOS (VISUALIZAÇÃO REAL) -->
+  <div class="modal-overlay" id="modal-file-preview">
+    <div class="modal-content preview-lightbox-container">
+      <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.1rem; font-weight: 700;" id="preview-filename">Visualizar Arquivo</h3>
+        <button class="btn-icon" id="close-modal-preview"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="preview-media-box" id="preview-media-box">
+        <!-- Renderizado dinamicamente (imagem, iframe PDF, ou player audio) -->
+      </div>
+
+      <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.8rem; color: var(--text-muted);" id="preview-filesize">Tamanho: 1.5 MB</span>
+        <button class="btn-primary" id="btn-modal-download-file">
+          <i class="fa-solid fa-download"></i> Baixar Arquivo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: QR CODE WHATSAPP -->
+  <div class="modal-overlay" id="modal-qr-code">
+    <div class="modal-content" style="width: 420px; text-align: center;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.1rem; font-weight: 700;"><i class="fa-brands fa-whatsapp" style="color: var(--whatsapp-green);"></i> QR Code WhatsApp API</h3>
+        <button class="btn-icon" id="close-modal-qr"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">Escaneie este QR Code no seu WhatsApp Business para vincular este canal ao sistema.</p>
+      
+      <div style="background-color: white; padding: 1.25rem; border-radius: var(--radius-md); width: 220px; margin: 0 auto; box-shadow: var(--shadow-sm);">
+        <!-- SVG QR Code Gerado Dinamicamente -->
+        <svg viewBox="0 0 100 100" width="100%" height="100%">
+          <path fill="#000" d="M0,0h30v30h-30z M40,0h20v10h-20z M70,0h30v30h-30z M10,10h10v10h-10z M80,10h10v10h-10z M0,40h10v20h-10z M20,40h30v10h-30z M60,40h10v10h-10z M80,40h20v20h-20z M0,70h30v30h-30z M10,80h10v10h-10z M40,70h20v10h-20z M70,70h10v20h-10z M90,80h10v20h-10z M40,90h20v10h-20z" />
+        </svg>
+      </div>
+
+      <div style="display: flex; justify-content: center; gap: 0.5rem; align-items: center; font-size: 0.8rem; color: var(--whatsapp-green);">
+        <span class="status-dot"></span> Sessão Ativa: Instância #001 Connected
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RESUMO MANUS AI -->
+  <div class="modal-overlay" id="modal-manus-summary">
+    <div class="modal-content" style="width: 600px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--manus-purple); display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Relatório Inteligente Manus AI (API Back-end 8081)
+        </h3>
+        <button class="btn-icon" id="close-modal-manus"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div style="background-color: var(--bg-tertiary); padding: 1rem; border-radius: var(--radius-md); font-size: 0.88rem; line-height: 1.6;" id="manus-summary-text">
+        Gerando síntese dos atendimentos da fila...
+      </div>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn-primary btn-manus" id="btn-close-manus-report">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Main Logic -->
+  <script src="app.js"></script>
+</body>
+</html>

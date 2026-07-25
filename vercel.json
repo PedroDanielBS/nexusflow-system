@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "name": "nexusflow-system",
+  "cleanUrls": true,
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
