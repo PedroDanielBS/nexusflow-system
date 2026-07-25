@@ -1,14 +1,21 @@
 /* ==========================================================================
    NEXUSFLOW - SISTEMA INTERNO DE ATENDIMENTO, DEMANDAS, CHAT & KPIS
-   Motor JavaScript Modular - Conexão Flexível Front-end & Manus AI Engine
+   Motor JavaScript Modular - Resolução de Conexão com Render.com & Vercel
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
   
+  // Resolução inteligente da URL do Back-end:
+  // 1. Se estiver rodando localmente -> http://localhost:8081
+  // 2. Se estiver na Vercel/Nuvem -> Usa a URL do Render.com com HTTPS seguro
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  
+  const RENDER_PROD_URL = 'https://nexusflow-backend.onrender.com';
   const BACKEND_URL = isLocal 
     ? 'http://localhost:8081' 
-    : (window.NEXUSFLOW_BACKEND_URL || window.location.origin);
+    : (window.NEXUSFLOW_BACKEND_URL || RENDER_PROD_URL);
+
+  console.log('[NEXUSFLOW NETWORKING] Conectando ao Back-End em:', BACKEND_URL);
 
   // ==========================================
   // ESTADO GLOBAL DA APLICAÇÃO (STATE)
@@ -180,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
       pill.style.backgroundColor = 'rgba(139, 92, 246, 0.15)';
       pill.style.color = '#8b5cf6';
       pill.style.borderColor = 'rgba(139, 92, 246, 0.3)';
-      pill.innerHTML = `<span class="status-dot" style="background-color: #8b5cf6; box-shadow: 0 0 8px #8b5cf6;"></span> Back-end API :8081 CONECTADO ⚡`;
+      pill.innerHTML = `<span class="status-dot" style="background-color: #8b5cf6; box-shadow: 0 0 8px #8b5cf6;"></span> Back-end API CONECTADO ⚡`;
     } else {
       pill.style.backgroundColor = 'rgba(244, 63, 94, 0.15)';
       pill.style.color = '#f43f5e';
@@ -213,13 +220,11 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Erro ao chamar Manus AI:', err);
     }
 
-    // Fallback inteligente caso a API esteja off
     return {
       suggestedReply: `Prezado(a) ${contactObj.name}, verificamos a sua solicitação em nossa fila de atendimento. A demanda "${contactObj.demandTitle}" está sob análise prioritária da nossa equipe.`
     };
   }
 
-  // CHAMADA DE SÍNTESE OPERACIONAL MANUS AI
   async function callManusAiSintese() {
     try {
       const res = await fetch(`${BACKEND_URL}/api/v1/manus/sintese`, {
@@ -294,9 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ==========================================
   // ELEMENTOS DO DOM
-  // ==========================================
   const navItems = document.querySelectorAll('.nav-item');
   const viewContainers = document.querySelectorAll('.view-container');
   const pageTitle = document.getElementById('current-view-title');
@@ -318,9 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalFilePreview = document.getElementById('modal-file-preview');
   const modalQrCode = document.getElementById('modal-qr-code');
 
-  // ==========================================
-  // PREVIEW E DOWNLOAD DE ARQUIVOS
-  // ==========================================
   function openFilePreviewModal(fileData) {
     state.activePreviewFile = fileData;
     document.getElementById('preview-filename').textContent = fileData.name;
@@ -392,7 +392,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // NAVEGAÇÃO ENTRE VISÕES
   function switchView(viewId) {
     state.activeView = viewId;
 
@@ -655,9 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ==========================================
   // BOTÕES MANUS AI COPILOT
-  // ==========================================
   const chipManusSuggest = document.getElementById('chip-manus-suggest');
   if (chipManusSuggest) {
     chipManusSuggest.addEventListener('click', async () => {
