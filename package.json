@@ -1,0 +1,15 @@
+{
+  "name": "nexusflow-system",
+  "version": "1.0.0",
+  "description": "NexusFlow Full-Stack System",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
