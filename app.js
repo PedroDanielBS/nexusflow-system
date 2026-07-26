@@ -1,14 +1,14 @@
 /* ==========================================================================
    NEXUSFLOW - SISTEMA INTERNO DE ATENDIMENTO, DEMANDAS, CHAT & KPIS
-   Motor JavaScript Modular - Verificação de Conexão Ultra Resiliente
+   Motor JavaScript Modular - Conexão Direta ao Render (nexusflow-backend-u3ii)
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
   
-  // Resolução inteligente da URL do Back-end:
+  // URL Exata do Render do Usuário
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   
-  const RENDER_PROD_URL = 'https://nexusflow-backend.onrender.com';
+  const RENDER_PROD_URL = 'https://nexusflow-backend-u3ii.onrender.com';
   const BACKEND_URL = isLocal 
     ? 'http://localhost:8081' 
     : (window.NEXUSFLOW_BACKEND_URL || RENDER_PROD_URL);
@@ -160,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   async function checkBackendConnection() {
     try {
-      // 1. Tenta rota simples GET /api/v1/health (Sem preflight CORS estrito)
       const res = await fetch(`${BACKEND_URL}/api/v1/health`, { method: 'GET' });
       if (res.ok) {
         state.backendConnected = true;
@@ -168,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
     } catch (err) {
-      // Se falhar o health check, tenta rota de login de fallback
+      // Tenta fallback para rota de login se health check oscilar
     }
 
     try {
@@ -201,12 +200,13 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       pill.style.backgroundColor = 'rgba(244, 63, 94, 0.15)';
       pill.style.color = '#f43f5e';
-      pill.innerHTML = `<span class="status-dot" style="background-color: #f43f5e;"></span> Aguardando Conexão Render...`;
+      pill.innerHTML = `<span class="status-dot" style="background-color: #f43f5e;"></span> Conectando ao Render...`;
     }
   }
 
-  // REtentativa periódica a cada 8 segundos para quando o Render sair do modo Sleep
-  setInterval(checkBackendConnection, 8000);
+  // Checagem imediata + retentativa a cada 5 segundos
+  checkBackendConnection();
+  setInterval(checkBackendConnection, 5000);
 
   // CHAMADA DE TRIAGEM MANUS AI
   async function callManusAiTriagem(contactObj) {
