@@ -1,6 +1,6 @@
 /* ==========================================================================
    NEXUSFLOW - SISTEMA INTERNO DE ATENDIMENTO, DEMANDAS, CHAT & KPIS
-   Motor UPA de Triagem de IA, Multi-Papéis e Integração Google Drive
+   Motor de Triagem Inteligente, Multi-Papéis e Integração Google Drive
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {

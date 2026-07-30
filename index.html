@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NexusFlow | Triagem UPA de Demandas, Workflow & Google Drive</title>
+  <title>NexusFlow | Triagem Inteligente de Demandas, Workflow & Google Drive</title>
   
   <!-- Fonts & Icons -->
   <link rel="stylesheet" href="styles.css">
@@ -23,7 +23,7 @@
           <img src="logo.png" alt="NexusFlow Logo" class="brand-logo" id="app-logo">
           <div>
             <div class="brand-title">NexusFlow</div>
-            <div class="brand-subtitle">Triagem UPA & Demandas</div>
+            <div class="brand-subtitle">Gestão Inteligente de Demandas</div>
           </div>
         </div>
 
@@ -36,7 +36,7 @@
           
           <a class="nav-item" data-view="view-kanban">
             <i class="fa-solid fa-square-kanban"></i>
-            <span>Fila de Demandas (UPA)</span>
+            <span>Fila de Demandas</span>
           </a>
           
           <a class="nav-item" data-view="view-kpi">
@@ -119,7 +119,7 @@
               <div class="filter-tabs">
                 <button class="filter-tab active" data-filter="todos">Todos</button>
                 <button class="filter-tab" data-filter="minhas">Minhas</button>
-                <button class="filter-tab" data-filter="fila">Fila UPA</button>
+                <button class="filter-tab" data-filter="fila">Fila Geral</button>
               </div>
             </div>
 
@@ -142,8 +142,8 @@
 
               <div class="chat-actions">
                 <button class="btn-primary" id="btn-trigger-ai-triage" style="background: linear-gradient(135deg, #8b5cf6, #ec4899); border: none;">
-                  <i class="fa-solid fa-stethoscope"></i>
-                  <span>Triar Demanda via IA (UPA)</span>
+                  <i class="fa-solid fa-wand-magic-sparkles"></i>
+                  <span>Gerar Demanda via IA</span>
                 </button>
                 <button class="btn-icon" title="Buscar no histórico"><i class="fa-solid fa-magnifying-glass"></i></button>
                 <button class="btn-icon" title="Opções"><i class="fa-solid fa-ellipsis-vertical"></i></button>
@@ -178,10 +178,10 @@
 
           </div>
 
-          <!-- PAINEL DA DIREITA: WIDGET DE TRIAGEM UPA E DADOS DO CLIENTE -->
+          <!-- PAINEL DA DIREITA: WIDGET DE TRIAGEM INTELIGENTE E DADOS DO CLIENTE -->
           <div class="contact-details-panel">
             <div class="panel-section">
-              <h4 class="section-title"><i class="fa-solid fa-hospital-user"></i> Triagem UPA da IA</h4>
+              <h4 class="section-title"><i class="fa-solid fa-brain"></i> Triagem Inteligente (IA)</h4>
               <div class="upa-triage-card" id="upa-triage-display">
                 <div class="upa-badge emergencia">
                   <i class="fa-solid fa-triangle-exclamation"></i>
@@ -230,7 +230,7 @@
         </div>
       </section>
 
-      <!-- VISÃO 2: QUADRO DE DEMANDAS COM SEVERIDADE UPA E WORKFLOW MULTI-PAPÉIS -->
+      <!-- VISÃO 2: QUADRO DE DEMANDAS COM FILA DE PRIORIDADE E WORKFLOW MULTI-PAPÉIS -->
       <section class="view-container" id="view-kanban">
         <div class="kanban-header">
           <div class="kanban-filters">
@@ -244,10 +244,10 @@
           </button>
         </div>
 
-        <!-- WORKFLOW DE 5 COLUNAS (UPA PIPELINE) -->
+        <!-- WORKFLOW DE 5 COLUNAS (PIPELINE DE DEMANDAS) -->
         <div class="kanban-board-upa">
           
-          <!-- COLUNA 1: RELACIONAMENTO (TRIAGEM UPA) -->
+          <!-- COLUNA 1: RELACIONAMENTO (TRIAGEM INTELIGENTE) -->
           <div class="kanban-column-upa" data-stage="relacionamento" id="col-relacionamento">
             <div class="column-header-upa" style="border-top-color: #8b5cf6;">
               <div>
@@ -322,7 +322,7 @@
             <div class="kpi-icon" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e;"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <div class="kpi-data">
               <div class="kpi-value">15 min</div>
-              <div class="kpi-label">Tempo Médio de Resposta Emergência UPA</div>
+              <div class="kpi-label">Tempo Médio de Resposta (Emergência)</div>
             </div>
           </div>
 
@@ -353,7 +353,7 @@
 
         <div class="charts-row">
           <div class="chart-card">
-            <h3>Volume de Demandas por Severidade UPA</h3>
+            <h3>Volume de Demandas por Nível de Prioridade</h3>
             <div class="chart-container">
               <canvas id="chart-hourly-volume"></canvas>
             </div>
@@ -410,14 +410,14 @@
               <div class="integration-icon manus"><i class="fa-solid fa-robot"></i></div>
               <div>
                 <h3 class="integration-title">Manus AI Triage & Quality Auditor</h3>
-                <span class="integration-status active">Motor UPA Conectado</span>
+                <span class="integration-status active">Motor IA Conectado</span>
               </div>
             </div>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-              Classificação por severidade de prioridade UPA, auditoria de entrega e arquivamento no Google Drive.
+              Classificação por nível de prioridade, auditoria de entrega e arquivamento no Google Drive.
             </p>
             <div class="webhook-log-box" id="manus-ai-logs">
-              <div>[MANUS AI] Motor UPA pronto para auditoria.</div>
+              <div>[MANUS AI] Motor de triagem pronto para auditoria.</div>
             </div>
           </div>
 
@@ -490,7 +490,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Classificação de Severidade (UPA)</label>
+          <label>Nível de Prioridade</label>
           <select id="demand-priority-select" class="form-input">
             <option value="emergencia">🔴 Emergência / Crítico (SLA 15 min)</option>
             <option value="alta">🟠 Alta Prioridade (SLA 1h)</option>
