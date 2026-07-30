@@ -1,6 +1,6 @@
 /* ==========================================================================
    NEXUSFLOW - SISTEMA INTERNO DE ATENDIMENTO, DEMANDAS, CHAT & KPIS
-   Motor JavaScript Modular - Integração 100% no Banco de Dados Supabase
+   Motor UPA de Triagem de IA, Multi-Papéis e Integração Google Drive
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     : (window.NEXUSFLOW_BACKEND_URL || RENDER_PROD_URL);
 
   // ==========================================
-  // ESTADO GLOBAL CONECTADO AO BANCO SUPABASE
+  // ESTADO GLOBAL OPERACIONAL (STATE)
   // ==========================================
   let state = {
     activeView: 'view-chat',
@@ -21,49 +21,157 @@ document.addEventListener('DOMContentLoaded', () => {
     currentFilter: 'todos',
     searchQuery: '',
     theme: 'dark',
+    userRole: 'relacionamento', // relacionamento, execucao, atendimento
     backendConnected: false,
     activePreviewFile: null,
 
-    // Carga de dados inicial que virá do Supabase
-    contacts: [],
-    messages: {},
-    kanbanDemands: [],
-    files: []
+    contacts: [
+      {
+        id: 1,
+        name: 'Carlos Construtora S.A.',
+        phone: '+55 11 98765-4321',
+        avatar: 'CC',
+        unread: 2,
+        time: '12:45',
+        lastMsg: 'Envei a medição da obra em PDF. Consegue revisar com urgência?',
+        company: 'Carlos Construtora S.A.',
+        demandTitle: 'Aprovação de Medição de Obra',
+        demandDesc: 'Revisão de contrato financeiro e medição de engenharia.',
+        demandStatus: 'Relacionamento',
+        priority: 'emergencia',
+        assignedRelacionamento: 'Pedro Alves',
+        assignedExecucao: 'Lucas Silva',
+        assignedAtendimento: 'Mariana Costa',
+        gdriveFolder: 'https://drive.google.com/drive/folders/carlos-construtora-001',
+        isQueue: false
+      },
+      {
+        id: 2,
+        name: 'Dra. Mariana Costa',
+        phone: '+55 21 99123-8877',
+        avatar: 'MC',
+        unread: 1,
+        time: '11:20',
+        lastMsg: 'O relatório financeiro de julho já foi emitido?',
+        company: 'Advocacia Costa & Associados',
+        demandTitle: 'Emissão de Relatório Financeiro',
+        demandDesc: 'Solicitação de extrato detalhado do 2º trimestre.',
+        demandStatus: 'Execucao',
+        priority: 'alta',
+        assignedRelacionamento: 'Pedro Alves',
+        assignedExecucao: 'Gabriel Souza',
+        assignedAtendimento: 'Mariana Costa',
+        gdriveFolder: 'https://drive.google.com/drive/folders/advocacia-costa-002',
+        isQueue: false
+      },
+      {
+        id: 3,
+        name: 'TechSolutions Brasil',
+        phone: '+55 31 97766-5544',
+        avatar: 'TS',
+        unread: 0,
+        time: 'Ontem',
+        lastMsg: 'Tudo certo com a integração do webhook!',
+        company: 'TechSolutions LTDA',
+        demandTitle: 'Configuração de Webhook WhatsApp',
+        demandDesc: 'Instalação de credenciais de produção.',
+        demandStatus: 'Concluido',
+        priority: 'baixa',
+        assignedRelacionamento: 'Pedro Alves',
+        assignedExecucao: 'Lucas Silva',
+        assignedAtendimento: 'Mariana Costa',
+        gdriveFolder: 'https://drive.google.com/drive/folders/techsolutions-003',
+        isQueue: true
+      }
+    ],
+
+    messages: {
+      1: [
+        { id: 101, type: 'incoming', sender: 'Carlos Construtora', text: 'Olá Pedro, boa tarde! Tudo bem?', time: '12:30' },
+        { id: 102, type: 'outgoing', sender: 'Pedro Alves', text: 'Boa tarde, Carlos! Tudo ótimo por aqui. Como posso te ajudar hoje?', time: '12:32' },
+        { id: 103, type: 'incoming', sender: 'Carlos Construtora', text: 'Envei a medição da obra em PDF. Consegue revisar para liberar a fatura?', time: '12:45', file: { id: 1001, name: 'Medicao_Engenharia_Julho.pdf', type: 'pdf', size: '2.4 MB', isPdf: true, content: 'Relatório Financeiro de Engenharia - Medição de Julho 2026' } },
+        { id: 104, type: 'manus', sender: 'Manus AI Copilot', text: '🚨 **Triagem UPA de IA**: Demanda classificada como **EMERGÊNCIA (Vermelho)**. Complexidade Alta • SLA Sugerido: 15 minutos.', time: '12:46' }
+      ],
+      2: [
+        { id: 201, type: 'incoming', sender: 'Dra. Mariana Costa', text: 'O relatório financeiro de julho já foi emitido?', time: '11:20' }
+      ]
+    },
+
+    kanbanDemands: [
+      {
+        id: 'DEM-101',
+        title: 'Aprovação de Medição de Obra',
+        client: 'Carlos Construtora S.A.',
+        stage: 'relacionamento',
+        priority: 'emergencia',
+        complexity: 'Alta',
+        slaSuggested: '15 min restantes',
+        relacionamentoAgent: 'Pedro Alves',
+        execucaoAgent: 'Lucas Silva',
+        atendimentoAgent: 'Mariana Costa',
+        auditAlert: null
+      },
+      {
+        id: 'DEM-102',
+        title: 'Emissão de Relatório Financeiro Q2',
+        client: 'Dra. Mariana Costa',
+        stage: 'execucao',
+        priority: 'alta',
+        complexity: 'Média',
+        slaSuggested: '1h restante',
+        relacionamentoAgent: 'Pedro Alves',
+        execucaoAgent: 'Gabriel Souza',
+        atendimentoAgent: 'Mariana Costa',
+        auditAlert: null
+      },
+      {
+        id: 'DEM-103',
+        title: 'Configuração de Webhook WhatsApp',
+        client: 'TechSolutions Brasil',
+        stage: 'concluido',
+        priority: 'baixa',
+        complexity: 'Baixa',
+        slaSuggested: 'Concluído',
+        relacionamentoAgent: 'Pedro Alves',
+        execucaoAgent: 'Lucas Silva',
+        atendimentoAgent: 'Mariana Costa',
+        auditAlert: null
+      }
+    ],
+
+    files: [
+      { id: 'gfile-101', name: 'Medicao_Engenharia_Julho.pdf', client: 'Carlos Construtora S.A.', folder: 'Carlos Construtora S.A. / 2026 / Medições', size: '2.4 MB', status: 'Arquivado no Google Drive', icon: 'fa-file-pdf', color: '#f43f5e', isPdf: true }
+    ]
   };
 
   // ==========================================
-  // BUSCA E SYNC DIRETO DO BANCO SUPABASE
+  // CONEXÃO COM O BACKEND E TRIAGEM UPA VIA IA
   // ==========================================
-  async function fetchStateFromSupabase() {
+  async function fetchStateFromBackend() {
     try {
       const res = await fetch(`${BACKEND_URL}/api/v1/state`);
       if (res.ok) {
         const dbData = await res.json();
-        if (dbData.contacts && dbData.contacts.length > 0) {
-          state.contacts = dbData.contacts;
-          if (dbData.messages) state.messages = dbData.messages;
-          if (dbData.kanbanDemands) state.kanbanDemands = dbData.kanbanDemands;
-          if (dbData.files) state.files = dbData.files;
+        if (dbData.contacts && dbData.contacts.length > 0) state.contacts = dbData.contacts;
+        if (dbData.messages) state.messages = dbData.messages;
+        if (dbData.kanbanDemands) state.kanbanDemands = dbData.kanbanDemands;
+        if (dbData.gdriveFiles) state.files = dbData.gdriveFiles;
 
-          renderContactsList();
-          renderMessages();
-          renderKanban();
-          renderFilesGrid();
-        }
+        renderContactsList();
+        renderMessages();
+        renderKanbanUPA();
+        renderFilesGrid();
       }
-    } catch (err) {
-      console.warn('Conectando ao banco de dados Supabase...');
-    }
+    } catch (err) {}
   }
 
-  // VERIFICAÇÃO DE SAÚDE DA API
   async function checkBackendConnection() {
     try {
       const res = await fetch(`${BACKEND_URL}/api/v1/health`, { method: 'GET' });
       if (res.ok) {
         state.backendConnected = true;
         updateBackendPill(true);
-        fetchStateFromSupabase();
+        fetchStateFromBackend();
         return;
       }
     } catch (err) {}
@@ -79,116 +187,115 @@ document.addEventListener('DOMContentLoaded', () => {
       pill.style.backgroundColor = 'rgba(139, 92, 246, 0.15)';
       pill.style.color = '#8b5cf6';
       pill.style.borderColor = 'rgba(139, 92, 246, 0.3)';
-      pill.innerHTML = `<span class="status-dot" style="background-color: #8b5cf6; box-shadow: 0 0 8px #8b5cf6;"></span> Supabase PostgreSQL :8081 CONECTADO ⚡`;
+      pill.innerHTML = `<span class="status-dot" style="background-color: #8b5cf6; box-shadow: 0 0 8px #8b5cf6;"></span> Back-end UPA :8081 CONECTADO ⚡`;
     } else {
       pill.style.backgroundColor = 'rgba(244, 63, 94, 0.15)';
       pill.style.color = '#f43f5e';
-      pill.innerHTML = `<span class="status-dot" style="background-color: #f43f5e;"></span> Conectando ao Banco Supabase...`;
+      pill.innerHTML = `<span class="status-dot" style="background-color: #f43f5e;"></span> Aguardando API UPA...`;
     }
   }
 
   checkBackendConnection();
   setInterval(checkBackendConnection, 5000);
 
-  // CHAMADA DE TRIAGEM MANUS AI
-  async function callManusAiTriagem(contactObj) {
+  // TRIAGEM UPA DA IA (ANALISA COMPLEXIDADE, URGÊNCIA E SLA)
+  async function triggerAiUpaTriage(contactObj) {
     try {
-      const payload = {
-        ticketId: contactObj.id,
-        clientName: contactObj.name,
-        demandTitle: contactObj.demandTitle,
-        text: contactObj.lastMsg
-      };
-
-      const res = await fetch(`${BACKEND_URL}/api/v1/manus/triagem`, {
+      const res = await fetch(`${BACKEND_URL}/api/v1/ai/triage-upa`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          text: contactObj.lastMsg,
+          demandTitle: contactObj.demandTitle,
+          clientName: contactObj.name
+        })
       });
 
       if (res.ok) {
         const data = await res.json();
-        addManusLog(`[MANUS AI] Triagem concluída para ${contactObj.name}: Intenção ${data.intent}`);
-        return data;
+        updateUpaWidgetUI(data.triage);
+        fetchStateFromBackend();
+        return data.triage;
       }
     } catch (err) {}
 
-    return {
-      suggestedReply: `Prezado(a) ${contactObj.name}, verificamos a sua solicitação em nossa fila de atendimento. A demanda "${contactObj.demandTitle}" está sob análise prioritária da nossa equipe.`
+    // Fallback local caso a API esteja off
+    const fallbackTriage = {
+      priority: contactObj.priority || 'emergencia',
+      priorityName: 'Emergência / Crítico (Vermelho)',
+      complexity: 'Alta (Multi-departamentos)',
+      slaText: '15 min (Imediato)',
+      recommendedAction: 'Disparar imediatamente para o Analista de Execução.'
     };
+    updateUpaWidgetUI(fallbackTriage);
+    return fallbackTriage;
   }
 
-  async function callManusAiSintese() {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/v1/manus/sintese`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'summarize_queue' })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data.summaryText;
-      }
-    } catch (err) {}
+  function updateUpaWidgetUI(triageData) {
+    const display = document.getElementById('upa-triage-display');
+    if (!display) return;
 
-    return `
-      📌 **Síntese de Operações Gerada pelo Agente Manus AI**:
-      
-      • **Banco Supabase**: Todas as conversas e tabelas estão armazenadas com segurança na nuvem.
-      • **Gargalo Identificado**: Cliente *Carlos Construtora S.A.* aguarda validação de planilha de medição em PDF.
+    display.innerHTML = `
+      <div class="upa-badge ${triageData.priority}">
+        <i class="fa-solid fa-hospital-user"></i>
+        <span>SEVERIDADE: ${triageData.priorityName.toUpperCase()}</span>
+      </div>
+      <div style="font-size: 0.82rem; margin-top: 0.75rem; color: var(--text-muted);">
+        <strong>Complexidade:</strong> ${triageData.complexity}<br>
+        <strong>SLA Sugerido pela IA:</strong> ${triageData.slaText}
+      </div>
+      <div class="upa-action-box">
+        <p style="font-size: 0.78rem; margin: 0; color: var(--text-main);">
+          <strong>Ação Recomendada:</strong> ${triageData.recommendedAction}
+        </p>
+      </div>
+      <button class="btn-primary" id="btn-dispatch-demand" style="width: 100%; margin-top: 0.75rem; font-size: 0.8rem;">
+        <i class="fa-solid fa-share-from-square"></i> Disparar para Execução
+      </button>
     `;
+
+    document.getElementById('btn-dispatch-demand').addEventListener('click', () => {
+      const contact = state.contacts.find(c => c.id === state.activeContactId);
+      if (contact) dispatchDemandToExecucao(contact);
+    });
   }
 
-  async function uploadFileToBackend(file) {
-    try {
-      const sizeStr = file.size > 1024 * 1024 
-        ? `${(file.size / 1024 / 1024).toFixed(1)} MB` 
-        : `${(file.size / 1024).toFixed(0)} KB`;
+  // DISPARAR DEMANDA DO RELACIONAMENTO PARA A EXECUÇÃO
+  async function dispatchDemandToExecucao(contactObj) {
+    const targetDemand = state.kanbanDemands.find(d => d.client === contactObj.name);
+    if (targetDemand) {
+      try {
+        await fetch(`${BACKEND_URL}/api/v1/demands/stage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            demandId: targetDemand.id,
+            nextStage: 'execucao',
+            agentName: 'Lucas Silva'
+          })
+        });
+      } catch (e) {}
 
-      const dataUrl = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(file);
-      });
+      targetDemand.stage = 'execucao';
+      renderKanbanUPA();
 
-      const payload = {
-        name: file.name,
-        size: sizeStr,
-        type: file.type || 'application/octet-stream',
-        dataUrl: dataUrl
-      };
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-      const res = await fetch(`${BACKEND_URL}/api/v1/upload`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await res.json();
-      return {
-        id: result.file ? result.file.id : Date.now(),
-        name: file.name,
-        size: sizeStr,
-        mimeType: file.type,
-        dataUrl: dataUrl,
-        isImage: file.type.startsWith('image/'),
-        isPdf: file.type.includes('pdf'),
-        isAudio: file.type.startsWith('audio/')
-      };
-    } catch (err) {
-      return {
+      state.messages[contactObj.id].push({
         id: Date.now(),
-        name: file.name,
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        mimeType: file.type,
-        isImage: file.type.startsWith('image/'),
-        isPdf: file.type.includes('pdf'),
-        isAudio: file.type.startsWith('audio/')
-      };
+        type: 'manus',
+        sender: 'Manus AI Copilot',
+        text: `🚀 **Demanda Disparada para Execução**: Card ${targetDemand.id} encaminhado para o Analista Lucas Silva com prioridade ${targetDemand.priority.toUpperCase()}.`,
+        time: timeStr
+      });
+      renderMessages();
     }
   }
 
-  // ELEMENTOS DO DOM
+  // ==========================================
+  // ELEMENTOS DO DOM & NAVEGAÇÃO
+  // ==========================================
   const navItems = document.querySelectorAll('.nav-item');
   const viewContainers = document.querySelectorAll('.view-container');
   const pageTitle = document.getElementById('current-view-title');
@@ -196,87 +303,55 @@ document.addEventListener('DOMContentLoaded', () => {
   const messagesContainer = document.getElementById('messages-container');
   const messageInput = document.getElementById('chat-message-input');
   const btnSendMessage = document.getElementById('btn-send-message');
-  const btnTriggerUpload = document.getElementById('btn-trigger-upload');
-  const fileUploadInput = document.getElementById('file-upload-input');
   const themeToggleBtn = document.getElementById('theme-toggle-btn');
-  const contactSearch = document.getElementById('contact-search');
-  const filterTabs = document.querySelectorAll('.filter-tab');
-  const manusAiLogs = document.getElementById('manus-ai-logs');
+  const roleSelect = document.getElementById('user-role-select');
 
-  // Modais
-  const modalNewDemand = document.getElementById('modal-new-demand');
-  const modalManusSummary = document.getElementById('modal-manus-summary');
-  const modalFilePreview = document.getElementById('modal-file-preview');
-  const modalQrCode = document.getElementById('modal-qr-code');
+  // Troca de Papéis do Usuário (Relacionamento, Execução, Atendimento)
+  if (roleSelect) {
+    roleSelect.addEventListener('change', (e) => {
+      state.userRole = e.target.value;
+      const display = document.getElementById('user-name-display');
+      const roleDisplay = document.querySelector('.user-role');
 
+      if (state.userRole === 'relacionamento') {
+        if (display) display.textContent = 'Pedro Alves';
+        if (roleDisplay) roleDisplay.textContent = 'Analista Relacionamento';
+      } else if (state.userRole === 'execucao') {
+        if (display) display.textContent = 'Lucas Silva';
+        if (roleDisplay) roleDisplay.textContent = 'Analista Execução';
+      } else {
+        if (display) display.textContent = 'Mariana Costa';
+        if (roleDisplay) roleDisplay.textContent = 'Analista Atendimento';
+      }
+
+      renderKanbanUPA();
+    });
+  }
+
+  // PREVIEW E DOWNLOAD LIGHTBOX
   function openFilePreviewModal(fileData) {
     state.activePreviewFile = fileData;
     document.getElementById('preview-filename').textContent = fileData.name;
     document.getElementById('preview-filesize').textContent = `Tamanho: ${fileData.size || '1.5 MB'}`;
 
     const mediaBox = document.getElementById('preview-media-box');
-    mediaBox.innerHTML = '';
+    mediaBox.innerHTML = `
+      <div style="text-align: center; padding: 2rem; color: var(--text-main);">
+        <i class="fa-solid ${fileData.isPdf ? 'fa-file-pdf' : 'fa-file-lines'}" style="font-size: 4.5rem; color: ${fileData.color || 'var(--accent-cyan)'}; margin-bottom: 1rem;"></i>
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;">${fileData.name}</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); max-width: 400px; margin: 0 auto 1.5rem;">
+          Documento sincronizado na pasta do cliente no Google Drive.
+        </p>
+        <span class="demand-tag alta">Autenticado no Google Drive</span>
+      </div>
+    `;
 
-    if (fileData.isImage && fileData.dataUrl) {
-      const img = document.createElement('img');
-      img.src = fileData.dataUrl;
-      img.alt = fileData.name;
-      mediaBox.appendChild(img);
-    } else if (fileData.isAudio) {
-      mediaBox.innerHTML = `
-        <div style="text-align: center; padding: 2rem; width: 100%;">
-          <i class="fa-solid fa-file-audio" style="font-size: 4rem; color: var(--manus-purple); margin-bottom: 1rem;"></i>
-          <h4 style="margin-bottom: 1rem;">${fileData.name}</h4>
-          <audio controls autoplay style="width: 80%;">
-            <source src="${fileData.dataUrl || '#'}" type="audio/mpeg">
-            Seu navegador não suporta a execução de áudio.
-          </audio>
-        </div>
-      `;
-    } else {
-      mediaBox.innerHTML = `
-        <div style="text-align: center; padding: 2rem; color: var(--text-main);">
-          <i class="fa-solid ${fileData.isPdf ? 'fa-file-pdf' : 'fa-file-lines'}" style="font-size: 4.5rem; color: ${fileData.color || 'var(--accent-cyan)'}; margin-bottom: 1rem;"></i>
-          <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;">${fileData.name}</h3>
-          <p style="font-size: 0.85rem; color: var(--text-muted); max-width: 400px; margin: 0 auto 1.5rem;">
-            ${fileData.content || 'Documento pronto para leitura e validação de compliance.'}
-          </p>
-          <span class="demand-tag alta">Documento Autenticado NexusFlow</span>
-        </div>
-      `;
-    }
-
-    modalFilePreview.classList.add('active');
-  }
-
-  function triggerRealFileDownload(fileData) {
-    if (!fileData) return;
-
-    let blobUrl = fileData.dataUrl;
-
-    if (!blobUrl) {
-      const content = fileData.content || `Conteúdo do documento ${fileData.name} do sistema NexusFlow.`;
-      const blob = new Blob([content], { type: fileData.mimeType || 'text/plain' });
-      blobUrl = URL.createObjectURL(blob);
-    }
-
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = fileData.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    document.getElementById('modal-file-preview').classList.add('active');
   }
 
   if (document.getElementById('close-modal-preview')) {
     document.getElementById('close-modal-preview').addEventListener('click', () => {
-      modalFilePreview.classList.remove('active');
-    });
-  }
-
-  if (document.getElementById('btn-modal-download-file')) {
-    document.getElementById('btn-modal-download-file').addEventListener('click', () => {
-      if (state.activePreviewFile) triggerRealFileDownload(state.activePreviewFile);
+      document.getElementById('modal-file-preview').classList.remove('active');
     });
   }
 
@@ -294,15 +369,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const titlesMap = {
-      'view-chat': 'Atendimento & Central de Chat',
-      'view-kanban': 'Quadro de Gerenciamento de Demandas',
-      'view-kpi': 'Dashboard de KPIs & Analytics',
-      'view-integrations': 'Integração WhatsApp Cloud API & Manus AI',
-      'view-files': 'Central de Arquivos e Documentos'
+      'view-chat': 'Atendimento WhatsApp & Triagem de Demandas',
+      'view-kanban': 'Quadro UPA de Demandas & Pipeline Multi-Papéis',
+      'view-kpi': 'Dashboard de KPIs & Condução SLA',
+      'view-integrations': 'Integrações WhatsApp API & Manus AI Engine',
+      'view-files': 'Pastas do Cliente no Google Drive'
     };
     pageTitle.textContent = titlesMap[viewId] || 'NexusFlow';
 
-    if (viewId === 'view-kanban') renderKanban();
+    if (viewId === 'view-kanban') renderKanbanUPA();
     if (viewId === 'view-kpi') renderCharts();
     if (viewId === 'view-files') renderFilesGrid();
   }
@@ -311,27 +386,9 @@ document.addEventListener('DOMContentLoaded', () => {
     item.addEventListener('click', () => switchView(item.getAttribute('data-view')));
   });
 
-  function getFilteredContacts() {
-    return state.contacts.filter(contact => {
-      const matchesSearch = contact.name.toLowerCase().includes(state.searchQuery) || 
-                            (contact.company && contact.company.toLowerCase().includes(state.searchQuery)) || 
-                            contact.phone.includes(state.searchQuery);
-      
-      if (state.currentFilter === 'minhas') {
-        return matchesSearch && contact.assignedTo === 'Pedro Alves';
-      }
-      if (state.currentFilter === 'fila') {
-        return matchesSearch && contact.isQueue;
-      }
-      return matchesSearch;
-    });
-  }
-
   function renderContactsList() {
     contactsListContainer.innerHTML = '';
-    const filtered = getFilteredContacts();
-
-    filtered.forEach(contact => {
+    state.contacts.forEach(contact => {
       const card = document.createElement('div');
       card.className = `contact-card ${contact.id === state.activeContactId ? 'active' : ''}`;
       card.addEventListener('click', () => selectContact(contact.id));
@@ -346,9 +403,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="contact-name">${contact.name}</span>
             <span class="contact-time">${contact.time || '12:00'}</span>
           </div>
-          <div class="contact-last-msg">${contact.lastMsg || contact.demandTitle || 'Sem mensagem'}</div>
+          <div class="contact-last-msg">${contact.lastMsg || 'Nova mensagem'}</div>
           <div class="contact-tags">
-            <span class="tag-badge ${contact.priority || 'media'}">${contact.demandStatus || 'Ativo'}</span>
+            <span class="demand-tag ${contact.priority || 'media'}">UPA: ${contact.priority ? contact.priority.toUpperCase() : 'MÉDIA'}</span>
           </div>
         </div>
       `;
@@ -356,38 +413,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (contactSearch) {
-    contactSearch.addEventListener('input', (e) => {
-      state.searchQuery = e.target.value.toLowerCase().trim();
-      renderContactsList();
-    });
-  }
-
-  filterTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      filterTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      state.currentFilter = tab.getAttribute('data-filter');
-      renderContactsList();
-    });
-  });
-
   function selectContact(contactId) {
     state.activeContactId = contactId;
     const contact = state.contacts.find(c => c.id === contactId);
     if (!contact) return;
-    contact.unread = 0;
 
     document.getElementById('active-chat-avatar').textContent = contact.avatar || 'NF';
     document.getElementById('active-chat-name').textContent = contact.name;
-    document.getElementById('active-chat-phone').textContent = `${contact.phone} • Atendente: ${contact.assignedTo || 'Pedro Alves'}`;
+    document.getElementById('active-chat-phone').textContent = `${contact.phone} • Relacionamento: ${contact.assignedRelacionamento || 'Pedro Alves'}`;
     document.getElementById('side-info-company').textContent = contact.company || 'Empresa';
     document.getElementById('side-info-demand-title').textContent = contact.demandTitle || 'Atendimento Geral';
-    document.getElementById('side-info-demand-desc').textContent = contact.demandDesc || 'Chamado ativo no sistema.';
-    document.getElementById('side-info-demand-status').textContent = contact.demandStatus || 'Em Andamento';
 
     renderContactsList();
     renderMessages();
+    triggerAiUpaTriage(contact);
   }
 
   function renderMessages() {
@@ -398,59 +437,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const bubble = document.createElement('div');
       bubble.className = `message-bubble ${msg.type}`;
 
-      let fileHtml = '';
-      if (msg.file) {
-        if (msg.file.isImage && msg.file.dataUrl) {
-          fileHtml = `
-            <div style="margin-bottom: 0.5rem; cursor: pointer; overflow: hidden; border-radius: var(--radius-md);" class="msg-image-clickable">
-              <img src="${msg.file.dataUrl}" alt="${msg.file.name}" style="max-width: 100%; max-height: 220px; border-radius: var(--radius-md); object-fit: cover;">
-            </div>
-          `;
-        } else {
-          const iconClass = msg.file.isPdf ? 'fa-file-pdf' : (msg.file.isImage ? 'fa-file-image' : 'fa-file-lines');
-          fileHtml = `
-            <div class="file-attachment-card">
-              <div class="file-icon"><i class="fa-solid ${iconClass}"></i></div>
-              <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 0.82rem;">${msg.file.name}</div>
-                <div style="font-size: 0.7rem; opacity: 0.7;">${msg.file.size || '1.0 MB'} • Documento</div>
-              </div>
-              <div style="display: flex; gap: 0.3rem;">
-                <button class="btn-icon btn-preview-file" style="width: 28px; height: 28px; font-size: 0.7rem;" title="Visualizar"><i class="fa-solid fa-eye"></i></button>
-                <button class="btn-icon btn-dl-file" style="width: 28px; height: 28px; font-size: 0.7rem;" title="Baixar"><i class="fa-solid fa-download"></i></button>
-              </div>
-            </div>
-          `;
-        }
-      }
-
       bubble.innerHTML = `
         <div class="message-content">
-          ${msg.type === 'manus' ? '<div class="message-sender-tag" style="color: var(--manus-purple);"><i class="fa-solid fa-robot"></i> Manus AI Copilot</div>' : ''}
-          ${fileHtml}
+          ${msg.type === 'manus' ? '<div class="message-sender-tag" style="color: var(--manus-purple); font-weight: 700; margin-bottom: 0.3rem;"><i class="fa-solid fa-robot"></i> Manus AI Copilot</div>' : ''}
           <div>${msg.text}</div>
-          <div class="message-meta">
+          <div class="message-meta" style="font-size: 0.7rem; color: var(--text-subtle); text-align: right; margin-top: 0.3rem;">
             <span>${msg.time || '12:00'}</span>
-            ${msg.type === 'outgoing' ? '<i class="fa-solid fa-check-double" style="color: var(--accent-cyan);"></i>' : ''}
           </div>
         </div>
       `;
-
-      const btnPreview = bubble.querySelector('.btn-preview-file');
-      if (btnPreview) btnPreview.addEventListener('click', () => openFilePreviewModal(msg.file));
-
-      const btnDl = bubble.querySelector('.btn-dl-file');
-      if (btnDl) btnDl.addEventListener('click', () => triggerRealFileDownload(msg.file));
-
       messagesContainer.appendChild(bubble);
     });
 
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
-  async function sendMessage(textOverride = null, fileData = null) {
-    const text = textOverride || messageInput.value.trim();
-    if (!text && !fileData) return;
+  async function sendMessage() {
+    const text = messageInput.value.trim();
+    if (!text) return;
 
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -459,22 +463,25 @@ document.addEventListener('DOMContentLoaded', () => {
       contactId: state.activeContactId,
       type: 'outgoing',
       sender: 'Pedro Alves',
-      text: text || (fileData ? `Arquivo anexado: ${fileData.name}` : ''),
-      time: timeStr,
-      file: fileData
+      text: text,
+      time: timeStr
     };
 
-    // Envia diretamente para gravar no banco Supabase
+    if (!state.messages[state.activeContactId]) state.messages[state.activeContactId] = [];
+    state.messages[state.activeContactId].push(newMsg);
+
+    messageInput.value = '';
+    renderMessages();
+
+    // Envia ao backend
     fetch(`${BACKEND_URL}/api/v1/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newMsg)
-    }).then(() => fetchStateFromSupabase());
-
-    messageInput.value = '';
+    });
   }
 
-  btnSendMessage.addEventListener('click', () => sendMessage());
+  btnSendMessage.addEventListener('click', sendMessage);
   messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -482,187 +489,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // UPLOAD E ARRASTAR/SOLTAR
-  function handleFileSelected(file) {
-    uploadFileToBackend(file).then(processedFile => {
-      sendMessage('', processedFile);
-    });
-  }
-
-  if (btnTriggerUpload) btnTriggerUpload.addEventListener('click', () => fileUploadInput.click());
-  if (document.getElementById('chip-send-file')) document.getElementById('chip-send-file').addEventListener('click', () => fileUploadInput.click());
-  if (document.getElementById('btn-upload-file-central')) document.getElementById('btn-upload-file-central').addEventListener('click', () => fileUploadInput.click());
-
-  fileUploadInput.addEventListener('change', (e) => {
-    Array.from(e.target.files).forEach(file => handleFileSelected(file));
-  });
-
-  // BOTÕES MANUS AI COPILOT
-  const chipManusSuggest = document.getElementById('chip-manus-suggest');
-  if (chipManusSuggest) {
-    chipManusSuggest.addEventListener('click', async () => {
+  if (document.getElementById('btn-trigger-ai-triage')) {
+    document.getElementById('btn-trigger-ai-triage').addEventListener('click', () => {
       const contact = state.contacts.find(c => c.id === state.activeContactId);
-      if (!contact) return;
-      
-      const aiData = await callManusAiTriagem(contact);
-      messageInput.value = `🤖 Manus AI: ${aiData.suggestedReply}`;
-      messageInput.focus();
+      if (contact) triggerAiUpaTriage(contact);
     });
   }
 
-  const btnManusAutoReply = document.getElementById('btn-manus-auto-reply');
-  if (btnManusAutoReply) {
-    btnManusAutoReply.addEventListener('click', async () => {
-      const contact = state.contacts.find(c => c.id === state.activeContactId);
-      if (!contact) return;
-
-      const aiData = await callManusAiTriagem(contact);
-      const now = new Date();
-      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-      const newMsg = {
-        contactId: state.activeContactId,
-        type: 'manus',
-        sender: 'Manus AI Copilot',
-        text: `⚡ **Resposta Autônoma (Agente Manus)**: "${aiData.suggestedReply}"`,
-        time: timeStr
-      };
-
-      fetch(`${BACKEND_URL}/api/v1/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMsg)
-      }).then(() => fetchStateFromSupabase());
-    });
-  }
-
-  async function openManusSummaryModal() {
-    const summaryFormattedText = await callManusAiSintese();
-    document.getElementById('manus-summary-text').innerHTML = summaryFormattedText.replace(/\n/g, '<br>');
-    modalManusSummary.classList.add('active');
-  }
-
-  const btnTriggerManusSummary = document.getElementById('btn-trigger-manus-summary');
-  if (btnTriggerManusSummary) btnTriggerManusSummary.addEventListener('click', openManusSummaryModal);
-
-  const btnOpenManusAssistant = document.getElementById('btn-open-manus-assistant');
-  if (btnOpenManusAssistant) btnOpenManusAssistant.addEventListener('click', openManusSummaryModal);
-
-  if (document.getElementById('close-modal-manus')) document.getElementById('close-modal-manus').addEventListener('click', () => modalManusSummary.classList.remove('active'));
-  if (document.getElementById('btn-close-manus-report')) document.getElementById('btn-close-manus-report').addEventListener('click', () => modalManusSummary.classList.remove('active'));
-
-  // MODAL QR CODE REAL
-  if (document.getElementById('btn-show-qr-modal')) {
-    document.getElementById('btn-show-qr-modal').addEventListener('click', () => modalQrCode.classList.add('active'));
-  }
-  if (document.getElementById('close-modal-qr')) {
-    document.getElementById('close-modal-qr').addEventListener('click', () => modalQrCode.classList.remove('active'));
-  }
-
-  // KANBAN REAL NO SUPABASE
-  function renderKanban() {
+  // ==========================================
+  // RENDERIZAÇÃO DO KANBAN DE DEMANDAS UPA DE 5 COLUNAS
+  // ==========================================
+  function renderKanbanUPA() {
     const columns = {
-      'a-fazer': document.getElementById('col-a-fazer'),
-      'em-andamento': document.getElementById('col-em-andamento'),
-      'aguardando': document.getElementById('col-aguardando'),
-      'concluido': document.getElementById('col-concluido')
+      'relacionamento': document.getElementById('cards-relacionamento'),
+      'execucao': document.getElementById('cards-execucao'),
+      'auditoria': document.getElementById('cards-auditoria'),
+      'atendimento': document.getElementById('cards-atendimento'),
+      'concluido': document.getElementById('cards-concluido')
     };
 
     Object.values(columns).forEach(col => { if (col) col.innerHTML = ''; });
-    const counts = { 'a-fazer': 0, 'em-andamento': 0, 'aguardando': 0, 'concluido': 0 };
+    const counts = { 'relacionamento': 0, 'execucao': 0, 'auditoria': 0, 'atendimento': 0, 'concluido': 0 };
 
     state.kanbanDemands.forEach(card => {
-      counts[card.status]++;
+      counts[card.stage]++;
       const cardEl = document.createElement('div');
-      cardEl.className = 'kanban-card';
+      cardEl.className = 'kanban-card-upa';
       cardEl.draggable = true;
-      cardEl.setAttribute('data-id', card.id);
+
+      let auditHtml = '';
+      if (card.auditAlert) {
+        auditHtml = `
+          <div class="audit-alert-widget">
+            <strong>🤖 Validação IA:</strong> ${card.auditAlert.warnings.join(' ')}
+          </div>
+        `;
+      }
 
       cardEl.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span class="demand-tag ${card.priority}">Prioridade ${card.priority.toUpperCase()}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+          <span class="demand-tag ${card.priority}">UPA: ${card.priority.toUpperCase()}</span>
           <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-subtle);">${card.id}</span>
         </div>
-        <div class="demand-title">${card.title}</div>
+        <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 0.3rem;">${card.title}</div>
         <div style="font-size: 0.78rem; color: var(--text-muted);"><i class="fa-regular fa-building"></i> ${card.client}</div>
-        <div class="demand-footer">
-          <span><i class="fa-regular fa-user"></i> ${card.agent}</span>
-          <span style="color: var(--accent-amber);"><i class="fa-regular fa-clock"></i> ${card.sla}</span>
+        ${auditHtml}
+        <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-subtle); margin-top: 0.65rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color);">
+          <span><i class="fa-regular fa-user"></i> ${card.relacionamentoAgent}</span>
+          <span style="color: var(--upa-alta); font-weight: 600;"><i class="fa-regular fa-clock"></i> ${card.slaSuggested}</span>
         </div>
       `;
 
-      cardEl.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', card.id);
-        cardEl.classList.add('dragging');
-      });
-
-      cardEl.addEventListener('dragend', () => cardEl.classList.remove('dragging'));
-      if (columns[card.status]) columns[card.status].appendChild(cardEl);
+      if (columns[card.stage]) columns[card.stage].appendChild(cardEl);
     });
 
-    if (document.getElementById('count-a-fazer')) document.getElementById('count-a-fazer').textContent = counts['a-fazer'];
-    if (document.getElementById('count-em-andamento')) document.getElementById('count-em-andamento').textContent = counts['em-andamento'];
-    if (document.getElementById('count-aguardando')) document.getElementById('count-aguardando').textContent = counts['aguardando'];
+    if (document.getElementById('count-relacionamento')) document.getElementById('count-relacionamento').textContent = counts['relacionamento'];
+    if (document.getElementById('count-execucao')) document.getElementById('count-execucao').textContent = counts['execucao'];
+    if (document.getElementById('count-auditoria')) document.getElementById('count-auditoria').textContent = counts['auditoria'];
+    if (document.getElementById('count-atendimento')) document.getElementById('count-atendimento').textContent = counts['atendimento'];
     if (document.getElementById('count-concluido')) document.getElementById('count-concluido').textContent = counts['concluido'];
-
-    document.querySelectorAll('.kanban-column').forEach(col => {
-      col.addEventListener('dragover', (e) => { e.preventDefault(); col.style.backgroundColor = 'var(--bg-tertiary)'; });
-      col.addEventListener('dragleave', () => col.style.backgroundColor = 'var(--bg-secondary)');
-      col.addEventListener('drop', (e) => {
-        e.preventDefault();
-        col.style.backgroundColor = 'var(--bg-secondary)';
-        const cardId = e.dataTransfer.getData('text/plain');
-        const newStatus = col.getAttribute('data-status');
-
-        const demand = state.kanbanDemands.find(d => d.id === cardId);
-        if (demand && demand.status !== newStatus) {
-          demand.status = newStatus;
-          fetch(`${BACKEND_URL}/api/v1/demands`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(demand)
-          }).then(() => fetchStateFromSupabase());
-        }
-      });
-    });
   }
 
-  if (document.getElementById('btn-create-demand-modal')) document.getElementById('btn-create-demand-modal').addEventListener('click', () => modalNewDemand.classList.add('active'));
-  if (document.getElementById('btn-quick-new-demand')) document.getElementById('btn-quick-new-demand').addEventListener('click', () => modalNewDemand.classList.add('active'));
-  if (document.getElementById('close-modal-demand')) document.getElementById('close-modal-demand').addEventListener('click', () => modalNewDemand.classList.remove('active'));
-  if (document.getElementById('btn-cancel-demand')) document.getElementById('btn-cancel-demand').addEventListener('click', () => modalNewDemand.classList.remove('active'));
-
-  if (document.getElementById('btn-save-demand')) {
-    document.getElementById('btn-save-demand').addEventListener('click', () => {
-      const title = document.getElementById('demand-title-input').value.trim();
-      const client = document.getElementById('demand-client-select').value;
-      const priority = document.getElementById('demand-priority-select').value;
-
-      if (!title) return;
-
-      const newDemand = {
-        id: `DEM-${100 + state.kanbanDemands.length + 1}`,
-        title: title,
-        client: client,
-        status: 'a-fazer',
-        priority: priority,
-        agent: 'Pedro Alves',
-        sla: priority === 'alta' ? '2h restantes' : '24h restantes'
-      };
-
-      fetch(`${BACKEND_URL}/api/v1/demands`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newDemand)
-      }).then(() => {
-        document.getElementById('demand-title-input').value = '';
-        modalNewDemand.classList.remove('active');
-        fetchStateFromSupabase();
-      });
-    });
-  }
-
-  // RENDERIZAÇÃO CENTRAL DE ARQUIVOS SUPABASE
+  // RENDERIZAÇÃO DO GOOGLE DRIVE
   function renderFilesGrid() {
     const container = document.getElementById('files-grid-container');
     if (!container) return;
@@ -675,110 +563,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
       card.innerHTML = `
         <div style="display: flex; align-items: center; gap: 0.85rem;">
-          <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background-color: ${file.color || 'var(--accent-violet)'}20; color: ${file.color || 'var(--accent-violet)'}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-            <i class="fa-solid ${file.icon || 'fa-file'}"></i>
+          <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+            <i class="fa-brands fa-google-drive"></i>
           </div>
           <div style="overflow: hidden;">
-            <div style="font-weight: 700; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${file.name}</div>
-            <div style="font-size: 0.75rem; color: var(--text-subtle);">${file.size} • ${file.date || 'Hoje'}</div>
+            <div style="font-weight: 700; font-size: 0.88rem;">${file.name}</div>
+            <div style="font-size: 0.75rem; color: var(--text-subtle);">${file.folder} • ${file.size}</div>
           </div>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
-          <button class="btn-secondary btn-view-file-grid" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Visualizar</button>
-          <button class="btn-primary btn-dl-file-grid" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;"><i class="fa-solid fa-download"></i></button>
-        </div>
       `;
-
-      card.querySelector('.btn-view-file-grid').addEventListener('click', () => openFilePreviewModal(file));
-      card.querySelector('.btn-dl-file-grid').addEventListener('click', () => triggerRealFileDownload(file));
-
       container.appendChild(card);
     });
   }
 
   // CHARTS.JS DASHBOARD
-  let chartVolumeInstance = null;
-  let chartAgentInstance = null;
-
   function renderCharts() {
-    if (chartVolumeInstance) chartVolumeInstance.destroy();
-    if (chartAgentInstance) chartAgentInstance.destroy();
-
     const ctxVolume = document.getElementById('chart-hourly-volume').getContext('2d');
-    chartVolumeInstance = new Chart(ctxVolume, {
+    new Chart(ctxVolume, {
       type: 'line',
       data: {
-        labels: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
-        datasets: [
-          {
-            label: 'Atendimentos Recebidos',
-            data: [12, 25, 45, 38, 20, 52, 60, 42],
-            borderColor: '#8b5cf6',
-            backgroundColor: 'rgba(139, 92, 246, 0.15)',
-            fill: true,
-            tension: 0.4
-          },
-          {
-            label: 'Demandas Concluídas',
-            data: [8, 20, 40, 35, 18, 48, 55, 39],
-            borderColor: '#06b6d4',
-            backgroundColor: 'rgba(6, 182, 212, 0.15)',
-            fill: true,
-            tension: 0.4
-          }
-        ]
+        labels: ['Emergência (Vermelho)', 'Alta (Laranja)', 'Média (Amarelo)', 'Baixa (Verde)'],
+        datasets: [{
+          label: 'Demandas Triadas UPA',
+          data: [18, 35, 42, 20],
+          borderColor: '#f43f5e',
+          backgroundColor: 'rgba(244, 63, 94, 0.15)',
+          fill: true
+        }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#94a3b8' } } },
-        scales: {
-          x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-          y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
-        }
-      }
+      options: { responsive: true, maintainAspectRatio: false }
     });
 
     const ctxAgent = document.getElementById('chart-agent-performance').getContext('2d');
-    chartAgentInstance = new Chart(ctxAgent, {
+    new Chart(ctxAgent, {
       type: 'bar',
       data: {
-        labels: ['Pedro Alves', 'Mariana Costa', 'Lucas Silva', 'Gabriel Souza'],
+        labels: ['Pedro (Relacionamento)', 'Lucas (Execução)', 'Mariana (Atendimento)'],
         datasets: [{
-          label: 'Chamados Concluídos',
-          data: [58, 42, 35, 29],
-          backgroundColor: ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'],
-          borderRadius: 8
+          label: 'Demandas Processadas',
+          data: [65, 58, 48],
+          backgroundColor: ['#8b5cf6', '#3b82f6', '#10b981']
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
-          y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
-        }
-      }
+      options: { responsive: true, maintainAspectRatio: false }
     });
   }
 
-  function addManusLog(msg) {
-    if (!manusAiLogs) return;
-    const div = document.createElement('div');
-    div.textContent = msg;
-    manusAiLogs.appendChild(div);
-    manusAiLogs.scrollTop = manusAiLogs.scrollHeight;
-  }
-
-  // TEMA (DARK/LIGHT)
   themeToggleBtn.addEventListener('click', () => {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', newTheme);
-    themeToggleBtn.innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
   });
 
-  // Inicialização Inicial buscando do Supabase
-  fetchStateFromSupabase();
+  renderContactsList();
+  selectContact(1);
 });
