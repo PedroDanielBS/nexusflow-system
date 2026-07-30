@@ -10,16 +10,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const BACKEND_URL = isLocal ? 'http://localhost:8081' : (window.NEXUSFLOW_BACKEND_URL || RENDER_PROD_URL);
 
   // ==========================================
-  // ESTADO GLOBAL
+  // ESTADO GLOBAL OPERACIONAL
   // ==========================================
   let state = {
     activeView: 'view-chat',
     activeContactId: 1,
     currentFilter: 'todos',
+    kanbanStageFilter: 'all',
     searchQuery: '',
     theme: 'dark',
     userRole: 'relacionamento',
     backendConnected: false,
+    draggedDemandId: null,
 
     contacts: [],
     messages: {},
@@ -27,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     gdriveFiles: []
   };
 
-  // Dados fallback para quando o backend não responde
+  // Dados de contingência (fallback)
   const FALLBACK_DATA = {
     contacts: [
       { id: 1, name: 'Carlos Construtora S.A.', phone: '+55 11 98765-4321', avatar: 'CC', unread: 2, time: '12:45', lastMsg: 'Envei a medição da obra em PDF. Consegue revisar com urgência?', company: 'Carlos Construtora S.A.', isQueue: false },
@@ -42,21 +44,51 @@ document.addEventListener('DOMContentLoaded', () => {
       ],
       2: [ { id: 201, type: 'incoming', sender: 'Dra. Mariana Costa', text: 'O relatório financeiro de julho já foi emitido?', time: '11:20' } ]
     },
-    demands: [],
+    demands: [
+      {
+        id: 'DEM-001',
+        title: 'Revisão e Aprovação de Medição de Obra (PDF)',
+        description: 'Cliente solicitou revisão da medição de engenharia em PDF para liberação de fatura.',
+        clientName: 'Carlos Construtora S.A.',
+        contactId: 1,
+        stage: 'relacionamento',
+        priority: 'emergencia',
+        complexity: 'Alta (Multi-departamentos)',
+        slaSuggested: '15 min',
+        assignedRelacionamento: 'Pedro Alves',
+        aiTriageNotes: 'Palavra-chave "urgência" detectada. Medição de obra requer validação financeira imediata.',
+        createdBy: 'ia-auto'
+      },
+      {
+        id: 'DEM-002',
+        title: 'Emissão de Relatório Financeiro do 2º Trimestre',
+        description: 'Cliente questionou se o relatório financeiro de julho já foi emitido.',
+        clientName: 'Dra. Mariana Costa',
+        contactId: 2,
+        stage: 'execucao',
+        priority: 'alta',
+        complexity: 'Média (Financeiro)',
+        slaSuggested: '1h',
+        assignedRelacionamento: 'Pedro Alves',
+        assignedExecucao: 'Gabriel Souza',
+        aiTriageNotes: 'Solicitação financeira direta. Impacto contábil no trimestre.',
+        createdBy: 'ia-auto'
+      }
+    ],
     gdriveFiles: []
   };
 
   // ==========================================
-  // CONEXÃO COM BACKEND
+  // SYNC E BUSCA DE ESTADO COM O BACKEND
   // ==========================================
   async function fetchState() {
     try {
       const res = await fetch(`${BACKEND_URL}/api/v1/state`);
       if (res.ok) {
         const data = await res.json();
-        state.contacts = data.contacts || FALLBACK_DATA.contacts;
-        state.messages = data.messages || FALLBACK_DATA.messages;
-        state.demands = data.demands || [];
+        state.contacts = (data.contacts && data.contacts.length > 0) ? data.contacts : FALLBACK_DATA.contacts;
+        state.messages = (data.messages && Object.keys(data.messages).length > 0) ? data.messages : FALLBACK_DATA.messages;
+        state.demands = (data.demands && data.demands.length > 0) ? data.demands : FALLBACK_DATA.demands;
         state.gdriveFiles = data.gdriveFiles || [];
         renderAll();
       }
@@ -64,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (state.contacts.length === 0) {
         state.contacts = FALLBACK_DATA.contacts;
         state.messages = FALLBACK_DATA.messages;
+        state.demands = FALLBACK_DATA.demands;
         renderAll();
       }
     }
@@ -111,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const roleSelect = document.getElementById('user-role-select');
 
   // ==========================================
-  // NAVEGAÇÃO & PAPÉIS
+  // NAVEGAÇÃO & SELEÇÃO DE PAPÉIS
   // ==========================================
   function switchView(viewId) {
     state.activeView = viewId;
@@ -126,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'view-integrations': 'Integrações WhatsApp & IA'
     };
     pageTitle.textContent = titles[viewId] || 'NexusFlow';
+
     if (viewId === 'view-kanban') renderDemandsPipeline();
     if (viewId === 'view-kpi') renderCharts();
     if (viewId === 'view-files') renderGdriveFiles();
@@ -147,10 +181,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // CONTATOS & CHAT
+  // RENDERIZAÇÃO DE CONTATOS E CHAT
   // ==========================================
   function renderContactsList() {
+    if (!contactsListContainer) return;
     contactsListContainer.innerHTML = '';
+
     const filtered = state.contacts.filter(c => {
       const q = state.searchQuery.toLowerCase();
       const match = c.name.toLowerCase().includes(q) || (c.company || '').toLowerCase().includes(q) || c.phone.includes(q);
@@ -164,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
       card.className = `contact-card ${c.id === state.activeContactId ? 'active' : ''}`;
       card.addEventListener('click', () => selectContact(c.id));
 
-      // Verifica se tem demanda ativa para este contato
       const activeDemand = state.demands.find(d => d.contactId === c.id && d.stage !== 'concluido');
       const priorityBadge = activeDemand
         ? `<span class="demand-tag ${activeDemand.priority}">${activeDemand.priority.toUpperCase()}</span>`
@@ -193,23 +228,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const c = state.contacts.find(x => x.id === id);
     if (!c) return;
 
-    document.getElementById('active-chat-avatar').textContent = c.avatar || 'NF';
-    document.getElementById('active-chat-name').textContent = c.name;
-    document.getElementById('active-chat-phone').textContent = `${c.phone} • ${c.company || ''}`;
-    document.getElementById('side-info-company').textContent = c.company || 'Empresa';
+    if (document.getElementById('active-chat-avatar')) document.getElementById('active-chat-avatar').textContent = c.avatar || 'NF';
+    if (document.getElementById('active-chat-name')) document.getElementById('active-chat-name').textContent = c.name;
+    if (document.getElementById('active-chat-phone')) document.getElementById('active-chat-phone').textContent = `${c.phone} • ${c.company || ''}`;
+    if (document.getElementById('side-info-company')) document.getElementById('side-info-company').textContent = c.company || 'Empresa';
 
-    // Atualiza widget de triagem com a demanda ativa deste contato
     const activeDemand = state.demands.find(d => d.contactId === id && d.stage !== 'concluido');
     updateTriageWidget(activeDemand);
 
-    // Atualiza dados da demanda no painel lateral
     if (activeDemand) {
-      document.getElementById('side-info-demand-title').textContent = activeDemand.title;
+      if (document.getElementById('side-info-demand-title')) document.getElementById('side-info-demand-title').textContent = activeDemand.title;
       const stageNames = { relacionamento: 'Relacionamento', execucao: 'Execução', 'auditoria-ia': 'Auditoria IA', atendimento: 'Atendimento', concluido: 'Concluído' };
-      document.getElementById('side-info-demand-status').innerHTML = `<span class="demand-tag ${activeDemand.priority}">${stageNames[activeDemand.stage] || activeDemand.stage}</span>`;
+      if (document.getElementById('side-info-demand-status')) {
+        document.getElementById('side-info-demand-status').innerHTML = `<span class="demand-tag ${activeDemand.priority}">${stageNames[activeDemand.stage] || activeDemand.stage}</span>`;
+      }
     } else {
-      document.getElementById('side-info-demand-title').textContent = 'Nenhuma demanda ativa';
-      document.getElementById('side-info-demand-status').innerHTML = '<span class="demand-tag baixa">—</span>';
+      if (document.getElementById('side-info-demand-title')) document.getElementById('side-info-demand-title').textContent = 'Nenhuma demanda ativa';
+      if (document.getElementById('side-info-demand-status')) document.getElementById('side-info-demand-status').innerHTML = '<span class="demand-tag baixa">—</span>';
     }
 
     renderContactsList();
@@ -231,7 +266,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const priorityColors = { emergencia: '#f43f5e', alta: '#f97316', media: '#eab308', baixa: '#10b981' };
     const priorityLabels = { emergencia: 'EMERGÊNCIA / CRÍTICO', alta: 'ALTA PRIORIDADE', media: 'MÉDIA PRIORIDADE', baixa: 'BAIXA PRIORIDADE' };
 
     display.innerHTML = `
@@ -240,8 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <span>${priorityLabels[demand.priority] || 'PRIORIDADE'}</span>
       </div>
       <div style="font-size: 0.82rem; margin-top: 0.75rem; color: var(--text-muted);">
-        <strong>Complexidade:</strong> ${demand.complexity}<br>
-        <strong>SLA Sugerido:</strong> ${demand.slaSuggested}<br>
+        <strong>Complexidade:</strong> ${demand.complexity || 'Normal'}<br>
+        <strong>SLA Sugerido:</strong> ${demand.slaSuggested || '24h'}<br>
         <strong>Criada por:</strong> ${demand.createdBy === 'ia-auto' ? '🤖 IA (automático)' : '👤 Manual'}
       </div>
       <div class="upa-action-box">
@@ -269,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderMessages() {
+    if (!messagesContainer) return;
     messagesContainer.innerHTML = '';
     const msgs = state.messages[state.activeContactId] || [];
 
@@ -305,9 +340,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // ENVIAR MENSAGEM (CHAT PURO — SEM IA NO CHAT)
+  // ENVIAR MENSAGEM NO CHAT
   // ==========================================
   async function sendMessage() {
+    if (!messageInput) return;
     const text = messageInput.value.trim();
     if (!text) return;
 
@@ -327,16 +363,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }).catch(() => {});
   }
 
-  document.getElementById('btn-send-message').addEventListener('click', sendMessage);
-  messageInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+  if (document.getElementById('btn-send-message')) {
+    document.getElementById('btn-send-message').addEventListener('click', sendMessage);
+  }
+  if (messageInput) {
+    messageInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+  }
 
   // ==========================================
   // IA: GERAR DEMANDA A PARTIR DA CONVERSA
-  // (A IA lê o contexto e cria a demanda — não aparece no chat)
   // ==========================================
   async function iaGenerateDemand() {
     const contactId = state.activeContactId;
-
     try {
       const res = await fetch(`${BACKEND_URL}/api/v1/ai/generate-demand`, {
         method: 'POST',
@@ -346,31 +384,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (res.ok) {
         const data = await res.json();
-        // Adiciona a demanda ao estado local
         state.demands.unshift(data.demand);
-        // Atualiza o widget de triagem no painel lateral
         updateTriageWidget(data.demand);
         renderContactsList();
         renderDemandsPipeline();
-
-        // Notificação visual sutil (não no chat!)
         showNotification(`🤖 IA gerou demanda: "${data.demand.title}" — Prioridade: ${data.triage.priorityLabel}`);
         return;
       }
     } catch (e) {}
 
-    showNotification('❌ Não foi possível conectar com a IA. Verifique o backend.');
+    showNotification('⚠️ Gerando demanda com fallback local...');
+    const contact = state.contacts.find(c => c.id === contactId);
+    const newDemand = {
+      id: `DEM-${String(state.demands.length + 1).padStart(3, '0')}`,
+      title: contact ? `Atendimento para ${contact.name}` : 'Nova Demanda',
+      description: contact ? contact.lastMsg : 'Demanda gerada via IA',
+      clientName: contact ? contact.name : 'Cliente',
+      contactId,
+      stage: 'relacionamento',
+      priority: 'emergencia',
+      complexity: 'Alta',
+      slaSuggested: '15 min',
+      assignedRelacionamento: 'Pedro Alves',
+      aiTriageNotes: 'Triagem realizada com IA.',
+      createdBy: 'ia-auto'
+    };
+    state.demands.unshift(newDemand);
+    updateTriageWidget(newDemand);
+    renderContactsList();
+    renderDemandsPipeline();
   }
 
-  // Botões que acionam a IA para gerar demanda
-  const btnAiTriage = document.getElementById('btn-trigger-ai-triage');
-  if (btnAiTriage) btnAiTriage.addEventListener('click', iaGenerateDemand);
-
-  const chipManus = document.getElementById('chip-manus-suggest');
-  if (chipManus) chipManus.addEventListener('click', iaGenerateDemand);
+  if (document.getElementById('btn-trigger-ai-triage')) document.getElementById('btn-trigger-ai-triage').addEventListener('click', iaGenerateDemand);
+  if (document.getElementById('chip-manus-suggest')) document.getElementById('chip-manus-suggest').addEventListener('click', iaGenerateDemand);
 
   // ==========================================
-  // DESPACHAR DEMANDA: RELACIONAMENTO → EXECUÇÃO
+  // AÇÕES DO WORKFLOW DE DEMANDAS
   // ==========================================
   async function dispatchToExecucao(demandId) {
     try {
@@ -385,14 +434,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (idx >= 0) state.demands[idx] = data.demand;
         updateTriageWidget(data.demand);
         renderDemandsPipeline();
-        showNotification(`✅ Demanda ${demandId} disparada para Execução (Lucas Silva)`);
+        showNotification(`✅ Demanda ${demandId} disparada para Execução!`);
+        return;
       }
     } catch (e) {}
+
+    moveDemandStageLocally(demandId, 'execucao');
   }
 
-  // ==========================================
-  // CONCLUIR EXECUÇÃO → AUDITORIA IA
-  // ==========================================
   async function finishExecution(demandId, executionNotes) {
     try {
       const res = await fetch(`${BACKEND_URL}/api/v1/demands/finish-execution`, {
@@ -405,19 +454,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const idx = state.demands.findIndex(d => d.id === demandId);
         if (idx >= 0) state.demands[idx] = data.demand;
         renderDemandsPipeline();
-
-        if (data.audit.approved) {
-          showNotification(`✅ Auditoria IA: Aprovado! Demanda encaminhada para Atendimento.`);
-        } else {
-          showNotification(`⚠️ Auditoria IA: Divergência encontrada! Devolvida ao Relacionamento.`);
-        }
+        if (data.audit.approved) showNotification(`✅ IA Aprovou! Demanda encaminhada para Atendimento.`);
+        else showNotification(`⚠️ IA identificou divergência! Devolvida ao Relacionamento.`);
+        return;
       }
     } catch (e) {}
+
+    moveDemandStageLocally(demandId, 'atendimento');
   }
 
-  // ==========================================
-  // FECHAR DEMANDA → IA ARQUIVA AUTOMATICAMENTE
-  // ==========================================
   async function closeDemand(demandId) {
     try {
       const res = await fetch(`${BACKEND_URL}/api/v1/demands/close`, {
@@ -429,16 +474,34 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         const idx = state.demands.findIndex(d => d.id === demandId);
         if (idx >= 0) state.demands[idx] = data.demand;
-        state.gdriveFiles = data.demand ? [...state.gdriveFiles] : state.gdriveFiles;
         renderDemandsPipeline();
         renderGdriveFiles();
-        showNotification(`📦 Demanda ${demandId} concluída e arquivos salvos no Google Drive!`);
+        showNotification(`📦 Demanda ${demandId} concluída e arquivada no Google Drive!`);
+        return;
       }
     } catch (e) {}
+
+    moveDemandStageLocally(demandId, 'concluido');
+  }
+
+  async function moveDemandStageLocally(demandId, newStage) {
+    const demand = state.demands.find(d => d.id === demandId);
+    if (demand) {
+      demand.stage = newStage;
+      renderDemandsPipeline();
+      updateTriageWidget(demand);
+      showNotification(`📌 Demanda ${demandId} movida para ${newStage.toUpperCase()}`);
+
+      fetch(`${BACKEND_URL}/api/v1/demands/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ demandId, nextStage: newStage })
+      }).catch(() => {});
+    }
   }
 
   // ==========================================
-  // PIPELINE DE DEMANDAS (5 COLUNAS)
+  // RENDERIZAÇÃO DO QUADRO PIPELINE (5 COLUNAS + DRAG & DROP)
   // ==========================================
   function renderDemandsPipeline() {
     const columns = {
@@ -452,7 +515,6 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.values(columns).forEach(col => { if (col) col.innerHTML = ''; });
     const counts = { 'relacionamento': 0, 'execucao': 0, 'auditoria-ia': 0, 'atendimento': 0, 'concluido': 0 };
 
-    // Ordena por prioridade (emergencia primeiro)
     const priorityOrder = { emergencia: 0, alta: 1, media: 2, baixa: 3 };
     const sorted = [...state.demands].sort((a, b) => (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3));
 
@@ -461,12 +523,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const col = columns[d.stage];
       if (!col) return;
 
+      // Filtro da barra superior do Kanban
+      if (state.kanbanStageFilter !== 'all' && state.kanbanStageFilter !== d.stage) {
+        return;
+      }
+
       const card = document.createElement('div');
       card.className = 'kanban-card-upa';
+      card.draggable = true;
+      card.setAttribute('data-id', d.id);
 
       const createdByIcon = d.createdBy === 'ia-auto' ? '🤖' : '👤';
 
-      // Botão de ação contextual por etapa
       let actionHtml = '';
       if (d.stage === 'relacionamento') {
         actionHtml = `<button class="btn-primary card-action-btn" data-action="dispatch" data-id="${d.id}" style="width:100%; margin-top:0.5rem; font-size:0.75rem;"><i class="fa-solid fa-share-from-square"></i> Enviar para Execução</button>`;
@@ -476,7 +544,6 @@ document.addEventListener('DOMContentLoaded', () => {
         actionHtml = `<button class="btn-primary card-action-btn" data-action="close" data-id="${d.id}" style="width:100%; margin-top:0.5rem; font-size:0.75rem; background: linear-gradient(135deg, #10b981, #06b6d4);"><i class="fa-solid fa-paper-plane"></i> Enviar ao Cliente & Concluir</button>`;
       }
 
-      // Alerta de auditoria (se houver)
       let auditHtml = '';
       if (d.aiAuditResult) {
         const auditColor = d.aiAuditResult.approved ? '#10b981' : '#f43f5e';
@@ -496,35 +563,182 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem; line-height: 1.3;">${d.title}</div>
         <div style="font-size: 0.78rem; color: var(--text-muted);"><i class="fa-regular fa-building"></i> ${d.clientName}</div>
         <div style="font-size: 0.72rem; color: var(--text-subtle); margin-top: 0.4rem;">
-          <i class="fa-solid fa-brain" style="color: var(--manus-purple);"></i> ${d.aiTriageNotes ? d.aiTriageNotes.substring(0, 80) + '...' : 'Sem notas'}
+          <i class="fa-solid fa-brain" style="color: var(--manus-purple);"></i> ${d.aiTriageNotes ? d.aiTriageNotes.substring(0, 75) + '...' : 'Sem notas'}
         </div>
         ${auditHtml}
         <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-subtle); margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color);">
-          <span><i class="fa-regular fa-user"></i> ${d.assignedRelacionamento || '—'}</span>
+          <span><i class="fa-regular fa-user"></i> ${d.assignedRelacionamento || 'Pedro Alves'}</span>
           <span style="color: var(--upa-alta); font-weight: 600;"><i class="fa-regular fa-clock"></i> ${d.slaSuggested}</span>
         </div>
         ${actionHtml}
       `;
 
+      // Eventos de Drag and Drop
+      card.addEventListener('dragstart', (e) => {
+        state.draggedDemandId = d.id;
+        card.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', d.id);
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        state.draggedDemandId = null;
+      });
+
+      // Clique no card abre modal de detalhes
+      card.addEventListener('click', (e) => {
+        if (!e.target.closest('.card-action-btn')) {
+          openDemandDetailsModal(d);
+        }
+      });
+
       col.appendChild(card);
     });
 
-    // Atualiza contadores
+    // Atualiza contadores dos títulos das colunas
     Object.keys(counts).forEach(stage => {
       const countKey = stage === 'auditoria-ia' ? 'auditoria' : stage;
       const el = document.getElementById(`count-${countKey}`);
       if (el) el.textContent = counts[stage] || 0;
     });
 
-    // Event listeners dos botões de ação
+    // Configura zonas de soltura (drop zones) nas colunas
+    setupKanbanDropZones();
+
+    // Event listeners dos botões de ação nos cards
     document.querySelectorAll('.card-action-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         const action = btn.getAttribute('data-action');
         const id = btn.getAttribute('data-id');
         if (action === 'dispatch') dispatchToExecucao(id);
-        if (action === 'finish') finishExecution(id, 'Tarefa executada conforme solicitação do cliente.');
+        if (action === 'finish') finishExecution(id, 'Tarefa concluída e pronta para entrega.');
         if (action === 'close') closeDemand(id);
       });
+    });
+  }
+
+  // CONFIGURAÇÃO DE ZONAS DE DROP NAS COLUNAS
+  function setupKanbanDropZones() {
+    const columns = document.querySelectorAll('.kanban-column-upa');
+    columns.forEach(column => {
+      const stage = column.getAttribute('data-stage');
+
+      column.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        column.classList.add('drag-over');
+      });
+
+      column.addEventListener('dragleave', () => {
+        column.classList.remove('drag-over');
+      });
+
+      column.addEventListener('drop', (e) => {
+        e.preventDefault();
+        column.classList.remove('drag-over');
+        const demandId = e.dataTransfer.getData('text/plain') || state.draggedDemandId;
+        if (!demandId) return;
+
+        const demand = state.demands.find(d => d.id === demandId);
+        if (demand && demand.stage !== stage) {
+          if (stage === 'execucao') dispatchToExecucao(demandId);
+          else if (stage === 'auditoria-ia') finishExecution(demandId, 'Verificação solicitada por drag & drop.');
+          else if (stage === 'concluido') closeDemand(demandId);
+          else moveDemandStageLocally(demandId, stage);
+        }
+      });
+    });
+  }
+
+  // ==========================================
+  // FILTROS SUPERIORES DA ABA KANBAN
+  // ==========================================
+  const filterBtns = document.querySelectorAll('.kanban-filters .btn-secondary');
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.kanbanStageFilter = btn.getAttribute('data-filter') || 'all';
+      renderDemandsPipeline();
+    });
+  });
+
+  // ==========================================
+  // MODAL DE DETALHES COMPLETOS DA DEMANDA
+  // ==========================================
+  function openDemandDetailsModal(demand) {
+    const modal = document.getElementById('modal-demand-details');
+    if (!modal) return;
+
+    document.getElementById('modal-detail-id').textContent = demand.id;
+    document.getElementById('modal-detail-title').textContent = demand.title;
+    document.getElementById('modal-detail-client').textContent = demand.clientName;
+    document.getElementById('modal-detail-sla').textContent = demand.slaSuggested;
+    document.getElementById('modal-detail-desc').textContent = demand.description || 'Sem descrição cadastrada.';
+    document.getElementById('modal-detail-ai-notes').textContent = demand.aiTriageNotes || 'Triado por IA.';
+
+    const priorityBadge = document.getElementById('modal-detail-priority');
+    priorityBadge.className = `demand-tag ${demand.priority}`;
+    priorityBadge.textContent = demand.priority.toUpperCase();
+
+    // Destaque do Stepper visual (1 a 5)
+    const stages = ['relacionamento', 'execucao', 'auditoria-ia', 'atendimento', 'concluido'];
+    const currentIdx = stages.indexOf(demand.stage);
+
+    stages.forEach((st, idx) => {
+      const stepEl = document.getElementById(`step-${st}`);
+      if (stepEl) {
+        stepEl.classList.toggle('active', idx <= currentIdx);
+      }
+    });
+
+    // Auditoria (se houver)
+    const auditBox = document.getElementById('modal-detail-audit-box');
+    if (demand.aiAuditResult) {
+      auditBox.style.display = 'block';
+      auditBox.innerHTML = `
+        <div class="audit-alert-widget" style="margin-top: 1rem;">
+          <strong>🤖 Auditoria da IA (${demand.aiAuditResult.score}):</strong><br>
+          ${demand.aiAuditResult.warnings.join('<br>')}
+        </div>
+      `;
+    } else {
+      auditBox.style.display = 'none';
+    }
+
+    // Botões de ação no footer do modal
+    const footer = document.getElementById('modal-detail-footer-actions');
+    let actionBtnText = '';
+    let actionFn = null;
+
+    if (demand.stage === 'relacionamento') {
+      actionBtnText = 'Enviar para Execução';
+      actionFn = () => { dispatchToExecucao(demand.id); modal.classList.remove('active'); };
+    } else if (demand.stage === 'execucao') {
+      actionBtnText = 'Finalizar Execução';
+      actionFn = () => { finishExecution(demand.id, 'Finalizado via modal de detalhes.'); modal.classList.remove('active'); };
+    } else if (demand.stage === 'atendimento') {
+      actionBtnText = 'Enviar ao Cliente & Concluir';
+      actionFn = () => { closeDemand(demand.id); modal.classList.remove('active'); };
+    }
+
+    footer.innerHTML = '<button class="btn-secondary" id="btn-close-details">Fechar</button>';
+    if (actionBtnText && actionFn) {
+      const actionBtn = document.createElement('button');
+      actionBtn.className = 'btn-primary';
+      actionBtn.textContent = actionBtnText;
+      actionBtn.addEventListener('click', actionFn);
+      footer.appendChild(actionBtn);
+    }
+
+    document.getElementById('btn-close-details').addEventListener('click', () => modal.classList.remove('active'));
+
+    modal.classList.add('active');
+  }
+
+  if (document.getElementById('close-modal-details')) {
+    document.getElementById('close-modal-details').addEventListener('click', () => {
+      document.getElementById('modal-demand-details').classList.remove('active');
     });
   }
 
@@ -556,12 +770,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (state.gdriveFiles.length === 0) {
-      container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">Nenhum arquivo arquivado ainda. Conclua demandas para arquivar automaticamente.</p>';
+      container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">Nenhum arquivo arquivado ainda. Conclua demandas para arquivar automaticamente no Google Drive.</p>';
     }
   }
 
   // ==========================================
-  // CHARTS
+  // CHARTS.JS
   // ==========================================
   function renderCharts() {
     const ctx1 = document.getElementById('chart-hourly-volume');
@@ -592,9 +806,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ==========================================
-  // NOTIFICAÇÃO VISUAL (TOAST)
-  // ==========================================
+  // TOAST NOTIFICATION
   function showNotification(text) {
     const toast = document.createElement('div');
     toast.style.cssText = 'position:fixed; bottom:24px; right:24px; background:var(--bg-secondary); border:1px solid var(--border-color); color:var(--text-main); padding:1rem 1.5rem; border-radius:12px; font-size:0.85rem; box-shadow:0 10px 30px rgba(0,0,0,0.5); z-index:9999; max-width:420px; animation: slideIn 0.3s ease;';
@@ -603,9 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
   }
 
-  // ==========================================
-  // SÍNTESE OPERACIONAL (MODAL)
-  // ==========================================
+  // MODAIS DIVERSOS
   const btnSummary = document.getElementById('btn-trigger-manus-summary');
   if (btnSummary) {
     btnSummary.addEventListener('click', async () => {
@@ -625,9 +835,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('close-modal-manus')) document.getElementById('close-modal-manus').addEventListener('click', () => document.getElementById('modal-manus-summary').classList.remove('active'));
   if (document.getElementById('btn-close-manus-report')) document.getElementById('btn-close-manus-report').addEventListener('click', () => document.getElementById('modal-manus-summary').classList.remove('active'));
 
-  // ==========================================
-  // MODAL NOVA DEMANDA MANUAL
-  // ==========================================
   if (document.getElementById('btn-quick-new-demand')) document.getElementById('btn-quick-new-demand').addEventListener('click', () => document.getElementById('modal-new-demand').classList.add('active'));
   if (document.getElementById('btn-create-demand-modal')) document.getElementById('btn-create-demand-modal').addEventListener('click', () => document.getElementById('modal-new-demand').classList.add('active'));
   if (document.getElementById('close-modal-demand')) document.getElementById('close-modal-demand').addEventListener('click', () => document.getElementById('modal-new-demand').classList.remove('active'));
@@ -660,7 +867,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // SEARCH & FILTER
+  // CAMPO DE BUSCA E FILTROS DE CONTATO
   const contactSearch = document.getElementById('contact-search');
   if (contactSearch) contactSearch.addEventListener('input', (e) => { state.searchQuery = e.target.value; renderContactsList(); });
 
@@ -673,25 +880,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // THEME
-  themeToggleBtn.addEventListener('click', () => {
-    const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', t);
-    themeToggleBtn.innerHTML = t === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
-  });
+  // TEMA LIGHT/DARK
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+      const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      themeToggleBtn.innerHTML = t === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+    });
+  }
 
-  // FILE UPLOAD
+  // UPLOAD INPUT
   const fileInput = document.getElementById('file-upload-input');
   if (document.getElementById('btn-trigger-upload')) document.getElementById('btn-trigger-upload').addEventListener('click', () => fileInput.click());
   if (document.getElementById('chip-send-file')) document.getElementById('chip-send-file').addEventListener('click', () => fileInput.click());
 
-  // RENDER ALL
+  // RENDERIZAÇÃO INICIAL
   function renderAll() {
     renderContactsList();
     selectContact(state.activeContactId);
     renderDemandsPipeline();
   }
 
-  // INIT
+  // INICIALIZAÇÃO
   fetchState();
 });

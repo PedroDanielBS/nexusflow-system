@@ -234,10 +234,12 @@
       <section class="view-container" id="view-kanban">
         <div class="kanban-header">
           <div class="kanban-filters">
-            <button class="btn-secondary active">Todas as Etapas</button>
-            <button class="btn-secondary">Relacionamento</button>
-            <button class="btn-secondary">Execução</button>
-            <button class="btn-secondary">Atendimento</button>
+            <button class="btn-secondary active" data-filter="all">Todas as Etapas</button>
+            <button class="btn-secondary" data-filter="relacionamento">1. Relacionamento</button>
+            <button class="btn-secondary" data-filter="execucao">2. Execução</button>
+            <button class="btn-secondary" data-filter="auditoria-ia">3. Auditoria IA</button>
+            <button class="btn-secondary" data-filter="atendimento">4. Atendimento</button>
+            <button class="btn-secondary" data-filter="concluido">5. Concluído</button>
           </div>
           <button class="btn-primary" id="btn-create-demand-modal">
             <i class="fa-solid fa-plus"></i> Nova Demanda
@@ -502,6 +504,56 @@
       <div class="modal-footer">
         <button class="btn-secondary" id="btn-cancel-demand">Cancelar</button>
         <button class="btn-primary" id="btn-save-demand">Criar Demanda</button>
+      </div>
+    </div>
+  <!-- MODAL DETALHES COMPLETOS DA DEMANDA -->
+  <div class="modal-backdrop" id="modal-demand-details">
+    <div class="modal-content" style="max-width: 650px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="demand-tag emergencia" id="modal-detail-priority">EMERGÊNCIA</span>
+          <h3 id="modal-detail-id" style="font-size: 1rem; color: var(--text-subtle);">DEM-001</h3>
+        </div>
+        <button class="btn-icon" id="close-modal-details"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body" style="padding-top: 0.5rem;">
+        <h2 id="modal-detail-title" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;">Título da Demanda</h2>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          <i class="fa-regular fa-building"></i> <span id="modal-detail-client">Cliente</span> • 
+          SLA Sugerido: <strong id="modal-detail-sla" style="color: var(--upa-alta);">15 min</strong>
+        </div>
+
+        <!-- PIPELINE STEPPER VISUAL -->
+        <div class="pipeline-stepper">
+          <div class="step-item" id="step-relacionamento"><div class="step-circle">1</div><span>Relacionamento</span></div>
+          <div class="step-item" id="step-execucao"><div class="step-circle">2</div><span>Execução</span></div>
+          <div class="step-item" id="step-auditoria-ia"><div class="step-circle">3</div><span>Auditoria IA</span></div>
+          <div class="step-item" id="step-atendimento"><div class="step-circle">4</div><span>Atendimento</span></div>
+          <div class="step-item" id="step-concluido"><div class="step-circle">5</div><span>Concluído</span></div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <label>Descrição do Chamado</label>
+          <div id="modal-detail-desc" style="font-size: 0.88rem; background: var(--bg-primary); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            Descrição do chamado...
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label><i class="fa-solid fa-brain" style="color: var(--manus-purple);"></i> Análise de Triagem da IA</label>
+          <div id="modal-detail-ai-notes" style="font-size: 0.82rem; background: rgba(168, 85, 247, 0.1); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid rgba(168, 85, 247, 0.3);">
+            Notas de IA...
+          </div>
+        </div>
+
+        <div id="modal-detail-audit-box" style="display: none;">
+          <!-- Renderizado via JS em caso de auditoria -->
+        </div>
+      </div>
+
+      <div class="modal-footer" id="modal-detail-footer-actions">
+        <button class="btn-secondary" id="btn-close-details">Fechar</button>
       </div>
     </div>
   </div>

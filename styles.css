@@ -344,6 +344,20 @@ body {
   display: flex;
 }
 
+#view-kanban {
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#view-kpi, #view-files, #view-integrations {
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+}
+
 /* CHAT LAYOUT */
 .chat-layout {
   display: flex;
@@ -742,23 +756,56 @@ body {
   font-weight: 600;
 }
 
-/* KANBAN UPA PIPELINE */
+/* KANBAN PIPELINE HEADER & FILTERS */
+.kanban-header {
+  padding: 0.85rem 1.25rem;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.kanban-filters {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.kanban-filters .btn-secondary.active {
+  background: linear-gradient(135deg, var(--accent-violet), #7c3aed);
+  color: white;
+  border-color: var(--accent-violet);
+}
+
+/* KANBAN UPA PIPELINE BOARD */
 .kanban-board-upa {
   display: flex;
   gap: 1rem;
   padding: 1.25rem;
   flex: 1;
   overflow-x: auto;
+  overflow-y: hidden;
+  height: calc(100% - 60px);
 }
 
 .kanban-column-upa {
   flex: 1;
-  min-width: 250px;
+  min-width: 270px;
   background-color: var(--bg-secondary);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  transition: var(--transition-fast);
+}
+
+.kanban-column-upa.drag-over {
+  border-color: var(--accent-violet);
+  background-color: rgba(139, 92, 246, 0.08);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
 }
 
 .column-header-upa {
@@ -773,7 +820,6 @@ body {
 .column-title-upa {
   font-size: 0.85rem;
   font-weight: 700;
-
 }
 
 .column-count-upa {
@@ -803,9 +849,16 @@ body {
   transition: var(--transition-fast);
 }
 
+.kanban-card-upa.dragging {
+  opacity: 0.4;
+  border-style: dashed;
+  border-color: var(--accent-violet);
+}
+
 .kanban-card-upa:hover {
   transform: translateY(-2px);
   border-color: var(--border-active);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .demand-tag {
@@ -829,6 +882,49 @@ body {
   border-radius: var(--radius-sm);
   margin-top: 0.65rem;
   font-size: 0.75rem;
+}
+
+/* STEPPER PIPELINE VISUAL */
+.pipeline-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1rem 0;
+  position: relative;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  z-index: 1;
+}
+
+.step-item.active {
+  color: var(--accent-violet);
+  font-weight: 700;
+}
+
+.step-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border-color);
+  font-size: 0.75rem;
+}
+
+.step-item.active .step-circle {
+  background-color: var(--accent-violet);
+  color: white;
+  border-color: var(--accent-violet);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
 }
 
 /* KPIS & INTEGRATIONS */
