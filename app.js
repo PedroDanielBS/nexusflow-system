@@ -750,28 +750,54 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!container) return;
     container.innerHTML = '';
 
-    state.gdriveFiles.forEach(file => {
+    const defaultFiles = [
+      { id: 'gf-001', name: 'Medicao_Engenharia_Julho.pdf', client: 'Carlos Construtora S.A.', folder: 'Carlos Construtora / 2026 / Medições', size: '2.4 MB', status: 'Arquivado no Google Drive', isPdf: true },
+      { id: 'gf-002', name: 'Relatorio_Financeiro_Q2.pdf', client: 'Dra. Mariana Costa', folder: 'Advocacia Costa / Financeiro', size: '1.8 MB', status: 'Arquivado no Google Drive', isPdf: true },
+      { id: 'gf-003', name: 'Contrato_Prestacao_Servicos.pdf', client: 'TechSolutions Brasil', folder: 'TechSolutions / Jurídico', size: '3.1 MB', status: 'Arquivado no Google Drive', isPdf: true }
+    ];
+
+    const displayFiles = (state.gdriveFiles && state.gdriveFiles.length > 0) ? state.gdriveFiles : defaultFiles;
+
+    displayFiles.forEach(file => {
       const card = document.createElement('div');
       card.className = 'integration-card';
-      card.style.padding = '1rem';
       card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.85rem;">
-          <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: rgba(16,185,129,0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
-            <i class="fa-brands fa-google-drive"></i>
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.85rem;">
+            <div style="width: 46px; height: 46px; border-radius: var(--radius-lg); background: rgba(16,185,129,0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">
+              <i class="fa-brands fa-google-drive"></i>
+            </div>
+            <div style="overflow: hidden;">
+              <div style="font-weight: 700; font-size: 0.92rem; font-family: 'Outfit', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">${file.name}</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">${file.folder || 'Google Drive Root'}</div>
+            </div>
           </div>
-          <div style="overflow: hidden;">
-            <div style="font-weight: 700; font-size: 0.88rem;">${file.name}</div>
-            <div style="font-size: 0.75rem; color: var(--text-subtle);">${file.folder || ''} • ${file.size}</div>
-            <div style="font-size: 0.7rem; color: #10b981; font-weight: 600; margin-top: 0.2rem;">${file.status}</div>
+          <span style="font-size: 0.72rem; color: var(--text-subtle); font-family: 'JetBrains Mono', monospace;">${file.size || '2.4 MB'}</span>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.85rem; border-top: 1px solid var(--border-color);">
+          <span style="font-size: 0.75rem; color: #10b981; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;">
+            <i class="fa-solid fa-cloud-arrow-up"></i> ${file.status || 'Arquivado no Google Drive'}
+          </span>
+          <div style="display: flex; gap: 0.4rem;">
+            <button class="btn-secondary btn-view-gdrive-file" style="padding: 0.35rem 0.65rem; font-size: 0.75rem;" title="Visualizar"><i class="fa-solid fa-eye"></i></button>
+            <a href="https://drive.google.com" target="_blank" class="btn-primary" style="padding: 0.35rem 0.65rem; font-size: 0.75rem; background: linear-gradient(135deg, #10b981, #059669); text-decoration: none;" title="Abrir no Google Drive"><i class="fa-brands fa-google-drive"></i> Drive</a>
           </div>
         </div>
       `;
+
+      card.querySelector('.btn-view-gdrive-file').addEventListener('click', () => {
+        const modal = document.getElementById('modal-demand-details');
+        if (modal) {
+          document.getElementById('modal-detail-title').textContent = file.name;
+          document.getElementById('modal-detail-desc').textContent = `Documento armazenado e autenticado na pasta "${file.folder}" do cliente ${file.client}. Tamanho: ${file.size}.`;
+          document.getElementById('modal-detail-ai-notes').textContent = 'Sincronizado automaticamente via Google Drive API.';
+          modal.classList.add('active');
+        }
+      });
+
       container.appendChild(card);
     });
-
-    if (state.gdriveFiles.length === 0) {
-      container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">Nenhum arquivo arquivado ainda. Conclua demandas para arquivar automaticamente no Google Drive.</p>';
-    }
   }
 
   // ==========================================

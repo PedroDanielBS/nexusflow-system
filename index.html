@@ -3,14 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NexusFlow | Triagem Inteligente de Demandas, Workflow & Google Drive</title>
+  <title>NexusFlow | Gestão Inteligente de Demandas & IA Copilot</title>
   
-  <!-- Fonts & Icons -->
-  <link rel="stylesheet" href="styles.css">
+  <!-- Google Fonts: Outfit & Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Icons & Animate.css -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
   
   <!-- Chart.js for KPIs -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom CSS Design System -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
@@ -20,7 +28,10 @@
     <aside class="sidebar">
       <div>
         <div class="brand-header">
-          <img src="logo.png" alt="NexusFlow Logo" class="brand-logo" id="app-logo">
+          <div class="brand-logo-wrapper">
+            <img src="logo.png" alt="NexusFlow Logo" class="brand-logo" id="app-logo">
+            <span class="pulse-ring"></span>
+          </div>
           <div>
             <div class="brand-title">NexusFlow</div>
             <div class="brand-subtitle">Gestão Inteligente de Demandas</div>
@@ -31,7 +42,7 @@
           <a class="nav-item active" data-view="view-chat">
             <i class="fa-solid fa-comments"></i>
             <span>Atendimento WhatsApp</span>
-            <span class="nav-badge" id="chat-unread-count">3</span>
+            <span class="nav-badge" id="chat-unread-count">2</span>
           </a>
           
           <a class="nav-item" data-view="view-kanban">
@@ -76,9 +87,9 @@
       <!-- HEADER SUPERIOR -->
       <header class="topbar">
         <div class="topbar-left">
-          <h1 class="page-title" id="current-view-title">Atendimento WhatsApp & Triagem de Demandas</h1>
+          <h1 class="page-title" id="current-view-title">Atendimento WhatsApp & Chat</h1>
           <span class="status-pill connected" id="backend-connection-pill">
-            <span class="status-dot"></span> Back-end API :8081 CONECTADO ⚡
+            <span class="status-dot"></span> API :8081 CONECTADO ⚡
           </span>
         </div>
 
@@ -94,19 +105,19 @@
           </div>
 
           <button class="btn-secondary" id="btn-trigger-manus-summary">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--manus-purple);"></i>
             <span>Síntese Operacional IA</span>
           </button>
           
           <button class="btn-primary" id="btn-quick-new-demand">
             <i class="fa-solid fa-plus"></i>
-            <span>Nova Demanda Manualmente</span>
+            <span>Nova Demanda</span>
           </button>
         </div>
       </header>
 
       <!-- VISÃO 1: ATENDIMENTO WHATSAPP & CHAT -->
-      <section class="view-container active" id="view-chat">
+      <section class="view-container active animate__animated animate__fadeIn" id="view-chat">
         <div class="chat-layout">
           
           <!-- PAINEL DA ESQUERDA: LISTA DE CONTATOS -->
@@ -136,12 +147,12 @@
                 <div class="contact-avatar active-chat-avatar" id="active-chat-avatar">CC</div>
                 <div>
                   <h3 class="chat-contact-name" id="active-chat-name">Carlos Construtora S.A.</h3>
-                  <p class="chat-contact-phone" id="active-chat-phone">+55 11 98765-4321 • Atendente: Pedro Alves</p>
+                  <p class="chat-contact-phone" id="active-chat-phone">+55 11 98765-4321 • Advocacia Costa & Associados</p>
                 </div>
               </div>
 
               <div class="chat-actions">
-                <button class="btn-primary" id="btn-trigger-ai-triage" style="background: linear-gradient(135deg, #8b5cf6, #ec4899); border: none;">
+                <button class="btn-primary btn-ai-gradient" id="btn-trigger-ai-triage">
                   <i class="fa-solid fa-wand-magic-sparkles"></i>
                   <span>Gerar Demanda via IA</span>
                 </button>
@@ -158,7 +169,7 @@
             <!-- BARRA DE COMPOSIÇÃO DA MENSAGEM -->
             <div class="chat-input-bar">
               <div class="quick-action-chips">
-                <button class="chip" id="chip-manus-suggest"><i class="fa-solid fa-robot"></i> Gerar Demanda via IA</button>
+                <button class="chip" id="chip-manus-suggest"><i class="fa-solid fa-brain" style="color: var(--manus-purple);"></i> Gerar Demanda via IA</button>
                 <button class="chip" id="chip-send-file"><i class="fa-solid fa-paperclip"></i> Anexar Documento</button>
               </div>
               
@@ -170,7 +181,7 @@
                 
                 <textarea id="chat-message-input" placeholder="Digite a mensagem para o cliente..." rows="1"></textarea>
                 
-                <button class="btn-send" id="btn-send-message">
+                <button class="btn-send" id="btn-send-message" title="Enviar mensagem">
                   <i class="fa-solid fa-paper-plane"></i>
                 </button>
               </div>
@@ -181,24 +192,9 @@
           <!-- PAINEL DA DIREITA: WIDGET DE TRIAGEM INTELIGENTE E DADOS DO CLIENTE -->
           <div class="contact-details-panel">
             <div class="panel-section">
-              <h4 class="section-title"><i class="fa-solid fa-brain"></i> Triagem Inteligente (IA)</h4>
+              <h4 class="section-title"><i class="fa-solid fa-brain" style="color: var(--manus-purple);"></i> Triagem Inteligente (IA)</h4>
               <div class="upa-triage-card" id="upa-triage-display">
-                <div class="upa-badge emergencia">
-                  <i class="fa-solid fa-triangle-exclamation"></i>
-                  <span>SEVERIDADE: EMERGÊNCIA (VERMELHO)</span>
-                </div>
-                <div style="font-size: 0.85rem; margin-top: 0.75rem; color: var(--text-muted);">
-                  <strong>Complexidade:</strong> Alta (Multi-departamentos)<br>
-                  <strong>SLA Sugerido:</strong> 15 min (Atendimento Imediato)
-                </div>
-                <div class="upa-action-box">
-                  <p style="font-size: 0.78rem; margin: 0; color: var(--text-main);">
-                    <strong>Ação Recomendada:</strong> Disparar a demanda imediatamente para o Analista de Execução de Engenharia.
-                  </p>
-                </div>
-                <button class="btn-primary" id="btn-dispatch-demand" style="width: 100%; margin-top: 0.75rem; font-size: 0.8rem;">
-                  <i class="fa-solid fa-share-from-square"></i> Disparar para Execução
-                </button>
+                <!-- Renderizado via JS -->
               </div>
             </div>
 
@@ -210,7 +206,7 @@
 
                 <div class="info-label" style="margin-top: 0.75rem;">Pasta Google Drive</div>
                 <a class="info-value gdrive-link" id="side-info-gdrive" href="https://drive.google.com" target="_blank">
-                  <i class="fa-brands fa-google-drive" style="color: #0F9D58;"></i> Pasta do Cliente no Drive
+                  <i class="fa-brands fa-google-drive" style="color: #10b981;"></i> Pasta do Cliente no Drive
                 </a>
               </div>
             </div>
@@ -222,7 +218,7 @@
                 <div class="info-value" id="side-info-demand-title">Aprovação de Medição de Obra</div>
                 
                 <div class="info-label" style="margin-top: 0.75rem;">Etapa Atual do Workflow</div>
-                <div class="info-value" id="side-info-demand-status"><span class="demand-tag alta">Analista de Relacionamento</span></div>
+                <div class="info-value" id="side-info-demand-status"><span class="demand-tag alta">RELACIONAMENTO</span></div>
               </div>
             </div>
           </div>
@@ -231,7 +227,7 @@
       </section>
 
       <!-- VISÃO 2: QUADRO DE DEMANDAS COM FILA DE PRIORIDADE E WORKFLOW MULTI-PAPÉIS -->
-      <section class="view-container" id="view-kanban">
+      <section class="view-container animate__animated animate__fadeIn" id="view-kanban">
         <div class="kanban-header">
           <div class="kanban-filters">
             <button class="btn-secondary active" data-filter="all">Todas as Etapas</button>
@@ -253,8 +249,8 @@
           <div class="kanban-column-upa" data-stage="relacionamento" id="col-relacionamento">
             <div class="column-header-upa" style="border-top-color: #8b5cf6;">
               <div>
-                <span class="column-title-upa"><i class="fa-solid fa-user-shield"></i> 1. Relacionamento (Triagem)</span>
-                <span class="column-count-upa" id="count-relacionamento">1</span>
+                <span class="column-title-upa"><i class="fa-solid fa-user-shield"></i> 1. Relacionamento</span>
+                <span class="column-count-upa" id="count-relacionamento">0</span>
               </div>
             </div>
             <div class="cards-container-upa" id="cards-relacionamento">
@@ -266,8 +262,8 @@
           <div class="kanban-column-upa" data-stage="execucao" id="col-execucao">
             <div class="column-header-upa" style="border-top-color: #3b82f6;">
               <div>
-                <span class="column-title-upa"><i class="fa-solid fa-gears"></i> 2. Execução Operacional</span>
-                <span class="column-count-upa" id="count-execucao">1</span>
+                <span class="column-title-upa"><i class="fa-solid fa-gears"></i> 2. Execução</span>
+                <span class="column-count-upa" id="count-execucao">0</span>
               </div>
             </div>
             <div class="cards-container-upa" id="cards-execucao">
@@ -276,10 +272,10 @@
           </div>
 
           <!-- COLUNA 3: AUDITORIA DE QUALIDADE VIA IA -->
-          <div class="kanban-column-upa" data-stage="auditoria" id="col-auditoria">
+          <div class="kanban-column-upa" data-stage="auditoria-ia" id="col-auditoria">
             <div class="column-header-upa" style="border-top-color: #ec4899;">
               <div>
-                <span class="column-title-upa"><i class="fa-solid fa-robot"></i> 3. Auditoria Preliminar IA</span>
+                <span class="column-title-upa"><i class="fa-solid fa-brain"></i> 3. Auditoria IA</span>
                 <span class="column-count-upa" id="count-auditoria">0</span>
               </div>
             </div>
@@ -292,7 +288,7 @@
           <div class="kanban-column-upa" data-stage="atendimento" id="col-atendimento">
             <div class="column-header-upa" style="border-top-color: #f59e0b;">
               <div>
-                <span class="column-title-upa"><i class="fa-solid fa-headset"></i> 4. Conferência Atendimento</span>
+                <span class="column-title-upa"><i class="fa-solid fa-headset"></i> 4. Atendimento</span>
                 <span class="column-count-upa" id="count-atendimento">0</span>
               </div>
             </div>
@@ -306,7 +302,7 @@
             <div class="column-header-upa" style="border-top-color: #10b981;">
               <div>
                 <span class="column-title-upa"><i class="fa-solid fa-box-archive"></i> 5. Concluído & Drive</span>
-                <span class="column-count-upa" id="count-concluido">1</span>
+                <span class="column-count-upa" id="count-concluido">0</span>
               </div>
             </div>
             <div class="cards-container-upa" id="cards-concluido">
@@ -318,109 +314,140 @@
       </section>
 
       <!-- VISÃO 3: DASHBOARD DE KPIS & MÉTRICAS -->
-      <section class="view-container" id="view-kpi">
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e;"><i class="fa-solid fa-triangle-exclamation"></i></div>
-            <div class="kpi-data">
-              <div class="kpi-value">15 min</div>
-              <div class="kpi-label">Tempo Médio de Resposta (Emergência)</div>
+      <section class="view-container animate__animated animate__fadeIn" id="view-kpi">
+        <div class="view-content-padding">
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <div class="kpi-data">
+                <div class="kpi-value">15 min <span class="kpi-trend positive"><i class="fa-solid fa-arrow-down"></i> -4min</span></div>
+                <div class="kpi-label">Tempo Médio de Resposta (Emergência)</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;"><i class="fa-solid fa-clock-rotate-left"></i></div>
+              <div class="kpi-data">
+                <div class="kpi-value">98.4% <span class="kpi-trend positive"><i class="fa-solid fa-arrow-up"></i> +2.1%</span></div>
+                <div class="kpi-label">Conformidade com SLAs Triados</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="fa-solid fa-circle-check"></i></div>
+              <div class="kpi-data">
+                <div class="kpi-value">142 <span class="kpi-trend positive"><i class="fa-solid fa-arrow-up"></i> +18 este mês</span></div>
+                <div class="kpi-label">Demandas Concluídas & Arquivadas</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;"><i class="fa-brands fa-google-drive"></i></div>
+              <div class="kpi-data">
+                <div class="kpi-value">100% <span class="kpi-trend positive"><i class="fa-solid fa-check"></i> Ativo</span></div>
+                <div class="kpi-label">Documentos Sincronizados no Drive</div>
+              </div>
             </div>
           </div>
 
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;"><i class="fa-solid fa-clock-rotate-left"></i></div>
-            <div class="kpi-data">
-              <div class="kpi-value">98.4%</div>
-              <div class="kpi-label">Conformidade com SLAs Triados</div>
+          <div class="charts-row">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3>Volume de Demandas por Nível de Prioridade</h3>
+                <span class="chart-badge">Sincronizado IA</span>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-hourly-volume"></canvas>
+              </div>
             </div>
-          </div>
 
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="fa-solid fa-circle-check"></i></div>
-            <div class="kpi-data">
-              <div class="kpi-value">142</div>
-              <div class="kpi-label">Demandas Concluídas & Arquivadas</div>
-            </div>
-          </div>
-
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;"><i class="fa-brands fa-google-drive"></i></div>
-            <div class="kpi-data">
-              <div class="kpi-value">100%</div>
-              <div class="kpi-label">Documentos Sincronizados no Google Drive</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="charts-row">
-          <div class="chart-card">
-            <h3>Volume de Demandas por Nível de Prioridade</h3>
-            <div class="chart-container">
-              <canvas id="chart-hourly-volume"></canvas>
-            </div>
-          </div>
-
-          <div class="chart-card">
-            <h3>Produtividade da Equipe por Papel</h3>
-            <div class="chart-container">
-              <canvas id="chart-agent-performance"></canvas>
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3>Produtividade da Equipe por Papel</h3>
+                <span class="chart-badge">Tempo Real</span>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-agent-performance"></canvas>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       <!-- VISÃO 4: GOOGLE DRIVE & CENTRAL DE ARQUIVOS -->
-      <section class="view-container" id="view-files">
-        <div class="files-view-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <h2 style="font-size: 1.2rem; font-weight: 700;">Pastas Sincronizadas do Google Drive</h2>
-            <p style="font-size: 0.82rem; color: var(--text-muted);">Arquivamento automático organizado por cliente e projeto.</p>
+      <section class="view-container animate__animated animate__fadeIn" id="view-files">
+        <div class="view-content-padding">
+          <div class="files-view-header">
+            <div>
+              <h2 class="view-section-title">Pastas Sincronizadas do Google Drive</h2>
+              <p class="view-section-subtitle">Arquivamento automático organizado por cliente e projeto.</p>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+              <button class="btn-secondary" id="btn-sync-gdrive"><i class="fa-brands fa-google-drive" style="color: #10b981;"></i> Sincronizar Agora</button>
+            </div>
           </div>
-          <button class="btn-primary" id="btn-sync-gdrive"><i class="fa-brands fa-google-drive"></i> Sincronizar Google Drive</button>
-        </div>
 
-        <div class="integrations-grid" id="files-grid-container">
-          <!-- Renderizado via JS -->
+          <div class="files-stats-bar">
+            <div class="stat-pill"><i class="fa-solid fa-folder"></i> 3 Pastas Ativas</div>
+            <div class="stat-pill"><i class="fa-solid fa-file-pdf"></i> 2.4 MB Armazenados</div>
+            <div class="stat-pill"><i class="fa-solid fa-lock"></i> Criptografia SSL 256-bit</div>
+          </div>
+
+          <div class="integrations-grid" id="files-grid-container">
+            <!-- Renderizado via JS -->
+          </div>
         </div>
       </section>
 
       <!-- VISÃO 5: INTEGRAÇÕES WHATSAPP & IA ENGINE -->
-      <section class="view-container" id="view-integrations">
-        <div class="integrations-grid">
+      <section class="view-container animate__animated animate__fadeIn" id="view-integrations">
+        <div class="view-content-padding">
           
-          <!-- CARD WHATSAPP -->
-          <div class="integration-card">
-            <div class="integration-header">
-              <div class="integration-icon wa"><i class="fa-brands fa-whatsapp"></i></div>
-              <div>
-                <h3 class="integration-title">WhatsApp Cloud API (Meta)</h3>
-                <span class="integration-status active">Instância Ativa</span>
-              </div>
-            </div>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-              Recebimento de mensagens em tempo real para leitura e triagem pela Inteligência Artificial.
-            </p>
-            <div class="webhook-log-box" id="wa-webhook-logs">
-              <div>[SYSTEM] Webhook Meta ativado.</div>
+          <div class="files-view-header">
+            <div>
+              <h2 class="view-section-title">WhatsApp Cloud API & Motor de IA Manus</h2>
+              <p class="view-section-subtitle">Status das instâncias de integração em tempo real.</p>
             </div>
           </div>
 
-          <!-- CARD MANUS AI TRIAGE ENGINE -->
-          <div class="integration-card">
-            <div class="integration-header">
-              <div class="integration-icon manus"><i class="fa-solid fa-robot"></i></div>
-              <div>
-                <h3 class="integration-title">Manus AI Triage & Quality Auditor</h3>
-                <span class="integration-status active">Motor IA Conectado</span>
+          <div class="integrations-grid">
+            
+            <!-- CARD WHATSAPP -->
+            <div class="integration-card">
+              <div class="integration-header">
+                <div class="integration-icon wa"><i class="fa-brands fa-whatsapp"></i></div>
+                <div>
+                  <h3 class="integration-title">WhatsApp Cloud API (Meta)</h3>
+                  <span class="integration-status active"><i class="fa-solid fa-circle-check"></i> Instância Ativa (Latência 12ms)</span>
+                </div>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.85rem 0;">
+                Recebimento de mensagens em tempo real para leitura e triagem pela Inteligência Artificial nos bastidores.
+              </p>
+              <div class="webhook-log-box" id="wa-webhook-logs">
+                <div class="log-line"><span class="log-time">[SYSTEM]</span> Webhook Meta Cloud v18.0 conectado com sucesso.</div>
+                <div class="log-line"><span class="log-time">[WEBHOOK]</span> 200 OK — Listening to +55 11 98765-4321.</div>
               </div>
             </div>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-              Classificação por nível de prioridade, auditoria de entrega e arquivamento no Google Drive.
-            </p>
-            <div class="webhook-log-box" id="manus-ai-logs">
-              <div>[MANUS AI] Motor de triagem pronto para auditoria.</div>
+
+            <!-- CARD MANUS AI TRIAGE ENGINE -->
+            <div class="integration-card">
+              <div class="integration-header">
+                <div class="integration-icon manus"><i class="fa-solid fa-brain"></i></div>
+                <div>
+                  <h3 class="integration-title">Manus AI Triage & Quality Auditor</h3>
+                  <span class="integration-status active"><i class="fa-solid fa-bolt"></i> Motor IA Conectado (Precisão 99.8%)</span>
+                </div>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.85rem 0;">
+                Classificação por nível de prioridade, cálculo de SLA, auditoria de entrega e arquivamento no Google Drive.
+              </p>
+              <div class="webhook-log-box" id="manus-ai-logs">
+                <div class="log-line"><span class="log-time">[MANUS AI]</span> Modelo de linguagem pré-carregado.</div>
+                <div class="log-line"><span class="log-time">[MANUS AI]</span> Motor de triagem pronto para auditoria automática.</div>
+              </div>
             </div>
+
           </div>
 
         </div>
@@ -431,95 +458,20 @@
 
   <!-- MODAIS DO SISTEMA -->
   
-  <!-- MODAL VISUALIZAÇÃO E DOWNLOAD DE ARQUIVO (LIGHTBOX) -->
-  <div class="modal-backdrop" id="modal-file-preview">
-    <div class="modal-container-lightbox">
-      <div class="modal-header-lightbox">
-        <div class="file-title-group">
-          <i class="fa-solid fa-file-invoice" style="color: var(--accent-violet);"></i>
-          <span id="preview-filename">Medicao_Engenharia_Julho.pdf</span>
-        </div>
-        <button class="btn-icon" id="close-modal-preview"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="preview-media-box" id="preview-media-box">
-        <!-- Renderizado dinamicamente -->
-      </div>
-
-      <div class="preview-actions-footer">
-        <span style="font-size: 0.8rem; color: var(--text-muted);" id="preview-filesize">Tamanho: 2.4 MB</span>
-        <button class="btn-primary" id="btn-modal-download-file">
-          <i class="fa-solid fa-download"></i> Baixar Arquivo
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL SÍNTESE MANUS AI -->
-  <div class="modal-backdrop" id="modal-manus-summary">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3><i class="fa-solid fa-robot" style="color: var(--manus-purple);"></i> Relatório Operacional Manus AI</h3>
-        <button class="btn-icon" id="close-modal-manus"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div class="modal-body" id="manus-summary-text">
-        Carregando síntese de operações do sistema...
-      </div>
-      <div class="modal-footer">
-        <button class="btn-primary" id="btn-close-manus-report">Entendido</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL NOVA DEMANDA MANUALLY -->
-  <div class="modal-backdrop" id="modal-new-demand">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3><i class="fa-solid fa-folder-plus"></i> Criar Nova Demanda</h3>
-        <button class="btn-icon" id="close-modal-demand"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>Título da Demanda</label>
-          <input type="text" id="demand-title-input" class="form-input" placeholder="Ex: Análise de Contrato e Medição">
-        </div>
-        <div class="form-group">
-          <label>Cliente Solicitante</label>
-          <select id="demand-client-select" class="form-input">
-            <option value="Carlos Construtora S.A.">Carlos Construtora S.A.</option>
-            <option value="Dra. Mariana Costa">Dra. Mariana Costa</option>
-            <option value="TechSolutions Brasil">TechSolutions Brasil</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Nível de Prioridade</label>
-          <select id="demand-priority-select" class="form-input">
-            <option value="emergencia">🔴 Emergência / Crítico (SLA 15 min)</option>
-            <option value="alta">🟠 Alta Prioridade (SLA 1h)</option>
-            <option value="media" selected>🟡 Média Prioridade (SLA 4h)</option>
-            <option value="baixa">🟢 Baixa Prioridade (SLA 24h)</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" id="btn-cancel-demand">Cancelar</button>
-        <button class="btn-primary" id="btn-save-demand">Criar Demanda</button>
-      </div>
-    </div>
   <!-- MODAL DETALHES COMPLETOS DA DEMANDA -->
   <div class="modal-backdrop" id="modal-demand-details">
-    <div class="modal-content" style="max-width: 650px;">
+    <div class="modal-content animate__animated animate__zoomIn" style="max-width: 650px;">
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
           <span class="demand-tag emergencia" id="modal-detail-priority">EMERGÊNCIA</span>
-          <h3 id="modal-detail-id" style="font-size: 1rem; color: var(--text-subtle);">DEM-001</h3>
+          <h3 id="modal-detail-id" style="font-size: 0.95rem; color: var(--text-subtle); font-family: 'JetBrains Mono', monospace;">DEM-001</h3>
         </div>
         <button class="btn-icon" id="close-modal-details"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div class="modal-body" style="padding-top: 0.5rem;">
-        <h2 id="modal-detail-title" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;">Título da Demanda</h2>
-        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        <h2 id="modal-detail-title" style="font-size: 1.15rem; font-weight: 700; font-family: 'Outfit', sans-serif; margin-bottom: 0.5rem;">Título da Demanda</h2>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
           <i class="fa-regular fa-building"></i> <span id="modal-detail-client">Cliente</span> • 
           SLA Sugerido: <strong id="modal-detail-sla" style="color: var(--upa-alta);">15 min</strong>
         </div>
@@ -533,27 +485,80 @@
           <div class="step-item" id="step-concluido"><div class="step-circle">5</div><span>Concluído</span></div>
         </div>
 
-        <div class="form-group" style="margin-top: 1rem;">
-          <label>Descrição do Chamado</label>
-          <div id="modal-detail-desc" style="font-size: 0.88rem; background: var(--bg-primary); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <div class="form-group" style="margin-top: 1.25rem;">
+          <label class="form-label">Descrição do Chamado</label>
+          <div id="modal-detail-desc" class="modal-info-box">
             Descrição do chamado...
           </div>
         </div>
 
         <div class="form-group">
-          <label><i class="fa-solid fa-brain" style="color: var(--manus-purple);"></i> Análise de Triagem da IA</label>
-          <div id="modal-detail-ai-notes" style="font-size: 0.82rem; background: rgba(168, 85, 247, 0.1); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid rgba(168, 85, 247, 0.3);">
+          <label class="form-label"><i class="fa-solid fa-brain" style="color: var(--manus-purple);"></i> Análise de Triagem da IA</label>
+          <div id="modal-detail-ai-notes" class="modal-ai-box">
             Notas de IA...
           </div>
         </div>
 
         <div id="modal-detail-audit-box" style="display: none;">
-          <!-- Renderizado via JS em caso de auditoria -->
+          <!-- Renderizado via JS -->
         </div>
       </div>
 
       <div class="modal-footer" id="modal-detail-footer-actions">
         <button class="btn-secondary" id="btn-close-details">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SÍNTESE MANUS AI -->
+  <div class="modal-backdrop" id="modal-manus-summary">
+    <div class="modal-content animate__animated animate__zoomIn">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-brain" style="color: var(--manus-purple);"></i> Relatório Operacional Manus AI</h3>
+        <button class="btn-icon" id="close-modal-manus"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" id="manus-summary-text" style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main);">
+        Carregando síntese de operações do sistema...
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="btn-close-manus-report">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL NOVA DEMANDA -->
+  <div class="modal-backdrop" id="modal-new-demand">
+    <div class="modal-content animate__animated animate__zoomIn">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-folder-plus" style="color: var(--accent-violet);"></i> Criar Nova Demanda</h3>
+        <button class="btn-icon" id="close-modal-demand"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Título da Demanda</label>
+          <input type="text" id="demand-title-input" class="form-input" placeholder="Ex: Análise de Contrato e Medição">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cliente Solicitante</label>
+          <select id="demand-client-select" class="form-input">
+            <option value="Carlos Construtora S.A.">Carlos Construtora S.A.</option>
+            <option value="Dra. Mariana Costa">Dra. Mariana Costa</option>
+            <option value="TechSolutions Brasil">TechSolutions Brasil</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nível de Prioridade</label>
+          <select id="demand-priority-select" class="form-input">
+            <option value="emergencia">🔴 Emergência / Crítico (SLA 15 min)</option>
+            <option value="alta">🟠 Alta Prioridade (SLA 1h)</option>
+            <option value="media" selected>🟡 Média Prioridade (SLA 4h)</option>
+            <option value="baixa">🟢 Baixa Prioridade (SLA 24h)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btn-cancel-demand">Cancelar</button>
+        <button class="btn-primary" id="btn-save-demand">Criar Demanda</button>
       </div>
     </div>
   </div>
